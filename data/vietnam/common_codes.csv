@@ -1,0 +1,31 @@
+common_code,description,category,terminology_system,terminology_code,terminology_display,terminology_version,country,source,verification_status,version,active
+CONS-GEN,General Consultation,CONSULTATION,Central Common Code Master,T-CONS-GEN,General Consultation,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CONS-CARD,Cardiology Consultation,CONSULTATION,Central Common Code Master,T-CONS-CARD,Cardiology Consultation,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CONS-PED,Pediatric Consultation,CONSULTATION,Central Common Code Master,T-CONS-PED,Pediatric Consultation,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CONS-DERM,Dermatology Consultation,CONSULTATION,Central Common Code Master,T-CONS-DERM,Dermatology Consultation,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CONS-ORTHO,Orthopedic Consultation,CONSULTATION,Central Common Code Master,T-CONS-ORTHO,Orthopedic Consultation,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CONS-ENT,ENT Consultation,CONSULTATION,Central Common Code Master,T-CONS-ENT,ENT Consultation,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CONS-OPHTH,Ophthalmology Consultation,CONSULTATION,Central Common Code Master,T-CONS-OPHTH,Ophthalmology Consultation,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+LAB-CBC,Complete Blood Count,LABORATORY,Vietnam LOINC,T-LAB-CBC,Complete Blood Count,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+LAB-GLU,Fasting Blood Glucose,LABORATORY,Vietnam LOINC,T-LAB-GLU,Fasting Blood Glucose,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+LAB-LFT,Liver Function Test,LABORATORY,Vietnam LOINC,T-LAB-LFT,Liver Function Test,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+LAB-KFT,Kidney Function Test,LABORATORY,Vietnam LOINC,T-LAB-KFT,Kidney Function Test,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+LAB-LIPID,Lipid Profile,LABORATORY,Vietnam LOINC,T-LAB-LIPID,Lipid Profile,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+LAB-TSH,Thyroid Stimulating Hormone,LABORATORY,Vietnam LOINC,T-LAB-TSH,Thyroid Stimulating Hormone,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+LAB-URINE,Urinalysis,LABORATORY,Vietnam LOINC,T-LAB-URINE,Urinalysis,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+LAB-CRP,C-Reactive Protein,LABORATORY,Vietnam LOINC,T-LAB-CRP,C-Reactive Protein,1.0,VN,SYNTHETIC_MVP,PENDING_VERIFICATION,1.0,true
+XR-CHEST,Chest X-Ray,RADIOLOGY,Central Common Code Master,T-XR-CHEST,Chest X-Ray,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+XR-EXTREMITY,X-Ray Extremity,RADIOLOGY,Central Common Code Master,T-XR-EXTREMITY,X-Ray Extremity,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+XR-SPINE,X-Ray Spine,RADIOLOGY,Central Common Code Master,T-XR-SPINE,X-Ray Spine,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+US-ABD,Ultrasound Abdomen,RADIOLOGY,Central Common Code Master,T-US-ABD,Ultrasound Abdomen,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+US-PELVIS,Ultrasound Pelvis,RADIOLOGY,Central Common Code Master,T-US-PELVIS,Ultrasound Pelvis,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CT-HEAD,CT Scan Head,RADIOLOGY,Central Common Code Master,T-CT-HEAD,CT Scan Head,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+CT-CHEST,CT Scan Chest,RADIOLOGY,Central Common Code Master,T-CT-CHEST,CT Scan Chest,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+MRI-BRAIN,MRI Brain,RADIOLOGY,Central Common Code Master,T-MRI-BRAIN,MRI Brain,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+ECG-12,12-Lead ECG,DIAGNOSTIC,Central Common Code Master,T-ECG-12,12-Lead ECG,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+PROC-ENDO,Endoscopy,PROCEDURE,Central Common Code Master,T-PROC-ENDO,Endoscopy,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+PROC-WOUND,Wound Care,PROCEDURE,Central Common Code Master,T-PROC-WOUND,Wound Care,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+PROC-SUTURE,Suturing,PROCEDURE,Central Common Code Master,T-PROC-SUTURE,Suturing,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+PROC-ECG,ECG Procedure,PROCEDURE,Central Common Code Master,T-PROC-ECG,ECG Procedure,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+DIAG-ECHO,Echocardiogram,DIAGNOSTIC,Central Common Code Master,T-DIAG-ECHO,Echocardiogram,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true
+DIAG-PATH,Pathology,DIAGNOSTIC,Central Common Code Master,T-DIAG-PATH,Pathology,1.0,VN,SYNTHETIC_MVP,SYNTHETIC_MVP,1.0,true

@@ -1,0 +1,396 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/amar/Desktop/Vietnam/backend
+plugins: anyio-4.15.1
+collected 27 items
+
+tests/test_facility_integration.py ....FFFF..                            [ 37%]
+tests/test_security.py .................                                 [100%]
+
+=================================== FAILURES ===================================
+_____________________ test_integration_endpoint_valid_json _____________________
+
+seeded_client = (<starlette.testclient.TestClient object at 0x7bdc76034440>, <sqlalchemy.orm.session.Session object at 0x7bdc76dec6b0>...bGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODk2MzA2NjUsInN1YiI6IjIifQ.7kneintZpB1N84XYospQbKavctkc36Ja4nxeaq7B9Vw'}})
+
+    def test_integration_endpoint_valid_json(seeded_client):
+        client, db, h_a, h_b, auth_a, auth_b = seeded_client
+        payload = {
+            "claim_reference": "INT-001",
+            "patient_ref": "PAT-INT-001",
+            "services": [
+                {
+                    "service_code": "TEST-CODE-A",
+                    "quantity": 1,
+                    "amount": 100.0,
+                    "description": "Test Service"
+                }
+            ]
+        }
+        response = client.post("/api/v1/integrations/submit", json=payload, headers=auth_a["headers"])
+>       assert response.status_code == 201
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_facility_integration.py:61: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:07:45,493 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:07:45,499 | INFO     | app.main | Database tables verified.
+2026-09-10 13:07:45,509 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:07:45,845 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,846 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,846 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,847 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,848 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,848 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,849 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,849 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,849 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,850 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,850 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,850 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,851 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,851 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,852 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,852 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,852 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,853 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,853 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,854 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,854 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,854 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,855 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,855 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:45,855 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:07:45,857 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+----------------------------- Captured stdout call -----------------------------
+2026-09-10 13:07:45,916 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+--------------------------- Captured stdout teardown ---------------------------
+2026-09-10 13:07:46,149 | INFO     | app.main | Shutting down.
+---------------------------- Captured log teardown -----------------------------
+INFO     app.main:main.py:48 Shutting down.
+____________________ test_integration_endpoint_invalid_json ____________________
+
+seeded_client = (<starlette.testclient.TestClient object at 0x7bdc7608f350>, <sqlalchemy.orm.session.Session object at 0x7bdc76060920>...bGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODk2MzA2NjYsInN1YiI6IjIifQ.abSM2MVP_rVRtVNsZYBots2yxzmxehFkvI8fJoR8hhs'}})
+
+    def test_integration_endpoint_invalid_json(seeded_client):
+        client, db, h_a, h_b, auth_a, auth_b = seeded_client
+        response = client.post("/api/v1/integrations/submit", json={"invalid": True}, headers=auth_a["headers"])
+>       assert response.status_code == 422 # FastAPI validation
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_facility_integration.py:69: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:07:46,227 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:07:46,235 | INFO     | app.main | Database tables verified.
+2026-09-10 13:07:46,246 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:07:46,601 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,602 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,603 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,604 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,607 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,607 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,608 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,608 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,609 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,610 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,610 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,611 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,611 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,612 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,612 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,613 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,613 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,614 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,614 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,614 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,615 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,615 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,616 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,616 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:46,617 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:07:46,618 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+----------------------------- Captured stdout call -----------------------------
+2026-09-10 13:07:46,699 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+--------------------------- Captured stdout teardown ---------------------------
+2026-09-10 13:07:46,725 | INFO     | app.main | Shutting down.
+---------------------------- Captured log teardown -----------------------------
+INFO     app.main:main.py:48 Shutting down.
+____________________ test_integration_endpoint_unauthorized ____________________
+
+seeded_client = (<starlette.testclient.TestClient object at 0x7bdc75f3cda0>, <sqlalchemy.orm.session.Session object at 0x7bdc760ce6c0>...bGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODk2MzA2NjcsInN1YiI6IjIifQ.nYX7vI56mILLvpHFHf_W3NOQv0_2u-uHro71Uw3mbxw'}})
+
+    def test_integration_endpoint_unauthorized(seeded_client):
+        client, db, h_a, h_b, auth_a, auth_b = seeded_client
+        response = client.post("/api/v1/integrations/submit", json={"claim_reference": "INT-003"})
+>       assert response.status_code == 401
+E       assert 404 == 401
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_facility_integration.py:74: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:07:46,826 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:07:46,840 | INFO     | app.main | Database tables verified.
+2026-09-10 13:07:46,853 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:07:47,379 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,380 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,381 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,381 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,381 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,381 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,382 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,382 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,382 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,383 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,383 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,383 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,383 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,384 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,384 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,384 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,385 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,385 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,385 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,385 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,386 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,386 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,386 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,387 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:47,388 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:07:47,389 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+----------------------------- Captured stdout call -----------------------------
+2026-09-10 13:07:47,450 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+--------------------------- Captured stdout teardown ---------------------------
+2026-09-10 13:07:47,665 | INFO     | app.main | Shutting down.
+---------------------------- Captured log teardown -----------------------------
+INFO     app.main:main.py:48 Shutting down.
+____________________ test_integration_endpoint_idempotency _____________________
+
+seeded_client = (<starlette.testclient.TestClient object at 0x7bdc75f8dfa0>, <sqlalchemy.orm.session.Session object at 0x7bdc761d0d10>...bGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODk2MzA2NjgsInN1YiI6IjIifQ.SpxDdK-dz1zK5qVzSCruxg1SXRvrkeExvWeqKewIeb0'}})
+
+    def test_integration_endpoint_idempotency(seeded_client):
+        client, db, h_a, h_b, auth_a, auth_b = seeded_client
+        payload = {
+            "claim_reference": "INT-IDEM-001",
+            "patient_ref": "PAT-001",
+            "services": [{"service_code": "TEST-CODE-A", "quantity": 1, "amount": 100.0, "description": "Test"}]
+        }
+        # First submission
+        resp1 = client.post("/api/v1/integrations/submit", json=payload, headers=auth_a["headers"])
+>       assert resp1.status_code == 201
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_facility_integration.py:85: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:07:47,730 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:07:47,736 | INFO     | app.main | Database tables verified.
+2026-09-10 13:07:47,753 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:07:48,021 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,021 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,022 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,022 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,022 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,023 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,023 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,023 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,024 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,024 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,024 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,024 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,025 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,025 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,025 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,026 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,026 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,026 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,026 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,027 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,027 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,027 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,027 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,027 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:07:48,028 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:07:48,029 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+----------------------------- Captured stdout call -----------------------------
+2026-09-10 13:07:48,072 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/integrations/submit "HTTP/1.1 404 Not Found"
+--------------------------- Captured stdout teardown ---------------------------
+2026-09-10 13:07:48,089 | INFO     | app.main | Shutting down.
+---------------------------- Captured log teardown -----------------------------
+INFO     app.main:main.py:48 Shutting down.
+=============================== warnings summary ===============================
+venv/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+venv/lib/python3.12/site-packages/starlette/testclient.py:41
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/starlette/testclient.py:41: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    [], typing.ContextManager[anyio.abc.BlockingPortal]
+
+venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:284
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/test_facility_integration.py: 10 warnings
+tests/test_security.py: 17 warnings
+  /home/amar/Desktop/Vietnam/backend/app/seed/seed_data.py:179: RuntimeWarning: coroutine 'process_transaction' was never awaited
+    logger.error(f"Error seeding transaction {t['transaction_id']}: {e}")
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_facility_integration.py: 10 warnings
+tests/test_security.py: 10 warnings
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+tests/test_facility_integration.py::test_admin_isolation
+tests/test_security.py::test_authenticated_facility_can_access_own_history
+tests/test_security.py::test_facility_a_cannot_see_facility_b_transaction
+tests/test_security.py::test_facility_a_cannot_submit_as_facility_b
+tests/test_security.py::test_facility_codes_returns_only_own_codes
+tests/test_security.py::test_auth_me_returns_correct_facility
+tests/test_security.py::test_duplicate_transaction_idempotency
+tests/test_security.py::test_facility_history_isolation
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:368: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    decoded = self.decode_complete(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_facility_integration.py::test_integration_endpoint_valid_json
+FAILED tests/test_facility_integration.py::test_integration_endpoint_invalid_json
+FAILED tests/test_facility_integration.py::test_integration_endpoint_unauthorized
+FAILED tests/test_facility_integration.py::test_integration_endpoint_idempotency
+================== 4 failed, 23 passed, 59 warnings in 15.26s ==================

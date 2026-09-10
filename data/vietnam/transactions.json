@@ -1,0 +1,314 @@
+[
+  {
+    "hospital_id": "H002",
+    "transaction_id": "TXN-20260908-0001",
+    "patient_reference": "P0005",
+    "items": [
+      {
+        "hospital_code": "DIAG-50",
+        "description": "Pathology Review",
+        "quantity": 1,
+        "unit_price": 722.71
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0002",
+    "patient_reference": "P0015",
+    "items": [
+      {
+        "hospital_code": "ENT-C06",
+        "description": "OPD ENT",
+        "quantity": 1,
+        "unit_price": 484.24
+      }
+    ]
+  },
+  {
+    "hospital_id": "H001",
+    "transaction_id": "TXN-20260908-0003",
+    "patient_reference": "P0001",
+    "items": [
+      {
+        "hospital_code": "DERM001",
+        "description": "Derm Consult",
+        "quantity": 1,
+        "unit_price": 451.57
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0004",
+    "patient_reference": "P0002",
+    "items": [
+      {
+        "hospital_code": "DERM-C04",
+        "description": "OPD Dermatology",
+        "quantity": 1,
+        "unit_price": 462.4
+      }
+    ]
+  },
+  {
+    "hospital_id": "H001",
+    "transaction_id": "TXN-20260908-0005",
+    "patient_reference": "P0003",
+    "items": [
+      {
+        "hospital_code": "ECG001",
+        "description": "ECG",
+        "quantity": 6,
+        "unit_price": 240.06
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0006",
+    "patient_reference": "P0013",
+    "items": [
+      {
+        "hospital_code": "BLOOD-TSH",
+        "description": "Blood Test - TSH",
+        "quantity": 1,
+        "unit_price": 450.0
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0007",
+    "patient_reference": "P0017",
+    "items": [
+      {
+        "hospital_code": "PR-ECG",
+        "description": "Procedure ECG",
+        "quantity": 1,
+        "unit_price": 96.33
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0008",
+    "patient_reference": "P0008",
+    "items": [
+      {
+        "hospital_code": "BLOOD-CRP",
+        "description": "Blood Test - CRP",
+        "quantity": 1,
+        "unit_price": 125.4
+      }
+    ]
+  },
+  {
+    "hospital_id": "H002",
+    "transaction_id": "TXN-20260908-0009",
+    "patient_reference": "P0008",
+    "items": [
+      {
+        "hospital_code": "LAB-60",
+        "description": "Lab CRP",
+        "quantity": 1,
+        "unit_price": 128.73
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0010",
+    "patient_reference": "P0001",
+    "items": [
+      {
+        "hospital_code": "DG-PATH",
+        "description": "Diagnostic Path",
+        "quantity": 1,
+        "unit_price": 783.51
+      }
+    ]
+  },
+  {
+    "hospital_id": "H001",
+    "transaction_id": "TXN-20260908-0011",
+    "patient_reference": "P0020",
+    "items": [
+      {
+        "hospital_code": "GEN001",
+        "description": "General Consult",
+        "quantity": 1,
+        "unit_price": 288.81
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0012",
+    "patient_reference": "P0016",
+    "items": [
+      {
+        "hospital_code": "CARD-C01",
+        "description": "OPD Cardiology",
+        "quantity": 1,
+        "unit_price": 703.21
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0013",
+    "patient_reference": "P0011",
+    "items": [
+      {
+        "hospital_code": "XR-SPINE",
+        "description": "X-Ray Spine",
+        "quantity": 1,
+        "unit_price": 519.65
+      }
+    ]
+  },
+  {
+    "hospital_id": "H002",
+    "transaction_id": "TXN-20260908-0014",
+    "patient_reference": "P0008",
+    "items": [
+      {
+        "hospital_code": "DIAG-20",
+        "description": "Echocardiogram",
+        "quantity": 1,
+        "unit_price": 1511.64
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0015",
+    "patient_reference": "P0020",
+    "items": [
+      {
+        "hospital_code": "MRI-BRN",
+        "description": "MRI Scan Brain",
+        "quantity": 1,
+        "unit_price": 4663.09
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0016",
+    "patient_reference": "P0017",
+    "items": [
+      {
+        "hospital_code": "PR-SUT",
+        "description": "Procedure Suture",
+        "quantity": 1,
+        "unit_price": 610.79
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0017",
+    "patient_reference": "P0005",
+    "items": [
+      {
+        "hospital_code": "BLOOD-LIP",
+        "description": "Blood Test - Lipid",
+        "quantity": 1,
+        "unit_price": 269.74
+      }
+    ]
+  },
+  {
+    "hospital_id": "H001",
+    "transaction_id": "TXN-20260908-0018",
+    "patient_reference": "P0019",
+    "items": [
+      {
+        "hospital_code": "MRI001",
+        "description": "Brain MRI",
+        "quantity": 1,
+        "unit_price": 5210.92
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0019",
+    "patient_reference": "P0005",
+    "items": [
+      {
+        "hospital_code": "XR-EXT",
+        "description": "X-Ray Ext",
+        "quantity": 1,
+        "unit_price": 472.63
+      }
+    ]
+  },
+  {
+    "hospital_id": "H001",
+    "transaction_id": "TXN-20260908-0020",
+    "patient_reference": "P0018",
+    "items": [
+      {
+        "hospital_code": "SUT001",
+        "description": "Suturing",
+        "quantity": 1,
+        "unit_price": 619.02
+      }
+    ]
+  },
+  {
+    "hospital_id": "H001",
+    "transaction_id": "TXN-20260908-0021",
+    "patient_reference": "P0010",
+    "items": [
+      {
+        "hospital_code": "KFT001",
+        "description": "Kidney Func",
+        "quantity": 1,
+        "unit_price": 193.24
+      }
+    ]
+  },
+  {
+    "hospital_id": "H001",
+    "transaction_id": "TXN-20260908-0022",
+    "patient_reference": "P0008",
+    "items": [
+      {
+        "hospital_code": "GEN001",
+        "description": "General Consult",
+        "quantity": 1,
+        "unit_price": 316.05
+      }
+    ]
+  },
+  {
+    "hospital_id": "H002",
+    "transaction_id": "TXN-20260908-0023",
+    "patient_reference": "P0015",
+    "items": [
+      {
+        "hospital_code": "LAB-45",
+        "description": "Lab LFT Profile",
+        "quantity": 1,
+        "unit_price": 194.44
+      }
+    ]
+  },
+  {
+    "hospital_id": "H003",
+    "transaction_id": "TXN-20260908-0024",
+    "patient_reference": "P0014",
+    "items": [
+      {
+        "hospital_code": "CT-CHEST",
+        "description": "CT Scan Chest",
+        "quantity": 1,
+        "unit_price": 3238.34
+      }
+    ]
+  }
+]

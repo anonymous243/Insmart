@@ -1,0 +1,1215 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/amar/Desktop/Vietnam/backend
+plugins: anyio-4.15.1
+collected 17 items
+
+tests/test_security.py ....EE.E..EEEE...                                 [100%]
+
+==================================== ERRORS ====================================
+_____ ERROR at setup of test_facility_a_cannot_see_facility_b_transaction ______
+
+client = <starlette.testclient.TestClient object at 0x7811d97f8e90>
+
+    @pytest.fixture(scope="function")
+    def seeded_client(client):
+        """
+        Augments the client fixture with two pre-seeded hospitals/codes.
+    
+        Uses test-only codes that won't conflict with the Vietnam seed data.
+        Facility A: hospital_code=TEST-FAC-A, local code=TEST-CODE-A → TEST-COMMON-A
+        Facility B: hospital_code=TEST-FAC-B, local code=TEST-CODE-B → TEST-COMMON-B
+        """
+        from app.models import (
+            Hospital, HospitalCode, CommonCode, CodeMapping, FWARule
+        )
+    
+        # Get the current test session from the dependency override
+        db: Session = None
+        for dep_fn in app.dependency_overrides.values():
+            gen = dep_fn()
+            db = next(gen)
+            break
+    
+        # ── Hospitals ──────────────────────────────────────────────────────────
+        h_a = Hospital(hospital_code="TEST-FAC-A", hospital_name="Test Facility A",
+                       integration_type="API", status="ACTIVE")
+        h_b = Hospital(hospital_code="TEST-FAC-B", hospital_name="Test Facility B",
+                       integration_type="API", status="ACTIVE")
+        db.add_all([h_a, h_b])
+        db.flush()
+    
+        # ── Common Codes (test-only, no conflict with Vietnam seed) ────────────
+        cc_a = CommonCode(
+            common_code="TEST-COMMON-A", description="Test Common Code A",
+            category="TEST", active=True,
+        )
+        cc_b = CommonCode(
+            common_code="TEST-COMMON-B", description="Test Common Code B",
+            category="TEST", active=True,
+        )
+        db.add_all([cc_a, cc_b])
+        db.flush()
+    
+        # ── Hospital Codes ─────────────────────────────────────────────────────
+        hc_a = HospitalCode(
+            hospital_id=h_a.id, hospital_code="TEST-CODE-A",
+            description="Test Local Code A", active=True,
+        )
+        hc_b = HospitalCode(
+            hospital_id=h_b.id, hospital_code="TEST-CODE-B",
+            description="Test Local Code B", active=True,
+        )
+        db.add_all([hc_a, hc_b])
+        db.flush()
+    
+        # ── Code Mappings ──────────────────────────────────────────────────────
+        cm_a = CodeMapping(
+            hospital_id=h_a.id, hospital_code_id=hc_a.id, common_code_id=cc_a.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        cm_b = CodeMapping(
+            hospital_id=h_b.id, hospital_code_id=hc_b.id, common_code_id=cc_b.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        db.add_all([cm_a, cm_b])
+    
+        # ── FWA Rules (skip if already seeded by the Vietnam seeder) ──────────
+        existing_fwa = db.query(FWARule).filter(FWARule.rule_code == "FWA-001").first()
+        if not existing_fwa:
+            db.add(FWARule(
+                rule_code="FWA-001", rule_name="Duplicate Service",
+                rule_type="DUPLICATE",
+                configuration={"window_days": 1, "same_hospital": True, "same_patient": True},
+                action="REJECT", active=True,
+            ))
+    
+        existing_fwa3 = db.query(FWARule).filter(FWARule.rule_code == "FWA-003").first()
+        if not existing_fwa3:
+            db.add(FWARule(
+                rule_code="FWA-003", rule_name="Price Anomaly",
+                rule_type="PRICE_ANOMALY",
+                configuration={"threshold_percent": 20},
+                action="FLAG", active=True,
+            ))
+    
+        # ── Users ──────────────────────────────────────────────────────────────
+        from app.models import User, FacilityUser
+        from app.core.security import create_access_token
+    
+        u_a = User(email="user_a@test.com", password_hash="hash:pass")
+        u_b = User(email="user_b@test.com", password_hash="hash:pass")
+        db.add_all([u_a, u_b])
+        db.flush()
+    
+        fu_a = FacilityUser(user_id=u_a.id, hospital_id=h_a.id)
+        fu_b = FacilityUser(user_id=u_b.id, hospital_id=h_b.id)
+        db.add_all([fu_a, fu_b])
+    
+        db.commit()
+    
+>       token_a = create_access_token(data={"sub": u_a.email, "facility_id": h_a.id, "facility_code": h_a.hospital_code})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: create_access_token() got an unexpected keyword argument 'data'
+
+tests/conftest.py:190: TypeError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:00:20,438 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:00:20,444 | INFO     | app.main | Database tables verified.
+2026-09-10 13:00:20,455 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:00:20,779 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,780 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,780 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,780 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,781 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,781 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,781 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,782 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,782 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,782 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,782 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,783 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,783 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,783 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,784 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,784 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,784 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,785 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,785 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,785 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,785 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,785 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,786 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,786 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:20,786 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:00:20,787 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+________ ERROR at setup of test_facility_a_cannot_submit_as_facility_b _________
+
+client = <starlette.testclient.TestClient object at 0x7811d8257800>
+
+    @pytest.fixture(scope="function")
+    def seeded_client(client):
+        """
+        Augments the client fixture with two pre-seeded hospitals/codes.
+    
+        Uses test-only codes that won't conflict with the Vietnam seed data.
+        Facility A: hospital_code=TEST-FAC-A, local code=TEST-CODE-A → TEST-COMMON-A
+        Facility B: hospital_code=TEST-FAC-B, local code=TEST-CODE-B → TEST-COMMON-B
+        """
+        from app.models import (
+            Hospital, HospitalCode, CommonCode, CodeMapping, FWARule
+        )
+    
+        # Get the current test session from the dependency override
+        db: Session = None
+        for dep_fn in app.dependency_overrides.values():
+            gen = dep_fn()
+            db = next(gen)
+            break
+    
+        # ── Hospitals ──────────────────────────────────────────────────────────
+        h_a = Hospital(hospital_code="TEST-FAC-A", hospital_name="Test Facility A",
+                       integration_type="API", status="ACTIVE")
+        h_b = Hospital(hospital_code="TEST-FAC-B", hospital_name="Test Facility B",
+                       integration_type="API", status="ACTIVE")
+        db.add_all([h_a, h_b])
+        db.flush()
+    
+        # ── Common Codes (test-only, no conflict with Vietnam seed) ────────────
+        cc_a = CommonCode(
+            common_code="TEST-COMMON-A", description="Test Common Code A",
+            category="TEST", active=True,
+        )
+        cc_b = CommonCode(
+            common_code="TEST-COMMON-B", description="Test Common Code B",
+            category="TEST", active=True,
+        )
+        db.add_all([cc_a, cc_b])
+        db.flush()
+    
+        # ── Hospital Codes ─────────────────────────────────────────────────────
+        hc_a = HospitalCode(
+            hospital_id=h_a.id, hospital_code="TEST-CODE-A",
+            description="Test Local Code A", active=True,
+        )
+        hc_b = HospitalCode(
+            hospital_id=h_b.id, hospital_code="TEST-CODE-B",
+            description="Test Local Code B", active=True,
+        )
+        db.add_all([hc_a, hc_b])
+        db.flush()
+    
+        # ── Code Mappings ──────────────────────────────────────────────────────
+        cm_a = CodeMapping(
+            hospital_id=h_a.id, hospital_code_id=hc_a.id, common_code_id=cc_a.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        cm_b = CodeMapping(
+            hospital_id=h_b.id, hospital_code_id=hc_b.id, common_code_id=cc_b.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        db.add_all([cm_a, cm_b])
+    
+        # ── FWA Rules (skip if already seeded by the Vietnam seeder) ──────────
+        existing_fwa = db.query(FWARule).filter(FWARule.rule_code == "FWA-001").first()
+        if not existing_fwa:
+            db.add(FWARule(
+                rule_code="FWA-001", rule_name="Duplicate Service",
+                rule_type="DUPLICATE",
+                configuration={"window_days": 1, "same_hospital": True, "same_patient": True},
+                action="REJECT", active=True,
+            ))
+    
+        existing_fwa3 = db.query(FWARule).filter(FWARule.rule_code == "FWA-003").first()
+        if not existing_fwa3:
+            db.add(FWARule(
+                rule_code="FWA-003", rule_name="Price Anomaly",
+                rule_type="PRICE_ANOMALY",
+                configuration={"threshold_percent": 20},
+                action="FLAG", active=True,
+            ))
+    
+        # ── Users ──────────────────────────────────────────────────────────────
+        from app.models import User, FacilityUser
+        from app.core.security import create_access_token
+    
+        u_a = User(email="user_a@test.com", password_hash="hash:pass")
+        u_b = User(email="user_b@test.com", password_hash="hash:pass")
+        db.add_all([u_a, u_b])
+        db.flush()
+    
+        fu_a = FacilityUser(user_id=u_a.id, hospital_id=h_a.id)
+        fu_b = FacilityUser(user_id=u_b.id, hospital_id=h_b.id)
+        db.add_all([fu_a, fu_b])
+    
+        db.commit()
+    
+>       token_a = create_access_token(data={"sub": u_a.email, "facility_id": h_a.id, "facility_code": h_a.hospital_code})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: create_access_token() got an unexpected keyword argument 'data'
+
+tests/conftest.py:190: TypeError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:00:21,136 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:00:21,142 | INFO     | app.main | Database tables verified.
+2026-09-10 13:00:21,153 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:00:21,458 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,459 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,459 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,460 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,460 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,461 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,461 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,461 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,462 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,462 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,462 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,462 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,463 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,463 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,463 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,463 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,464 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,464 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,464 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,464 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,465 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,465 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,465 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,465 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:21,466 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:00:21,467 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+_________ ERROR at setup of test_facility_codes_returns_only_own_codes _________
+
+client = <starlette.testclient.TestClient object at 0x7811d81dc860>
+
+    @pytest.fixture(scope="function")
+    def seeded_client(client):
+        """
+        Augments the client fixture with two pre-seeded hospitals/codes.
+    
+        Uses test-only codes that won't conflict with the Vietnam seed data.
+        Facility A: hospital_code=TEST-FAC-A, local code=TEST-CODE-A → TEST-COMMON-A
+        Facility B: hospital_code=TEST-FAC-B, local code=TEST-CODE-B → TEST-COMMON-B
+        """
+        from app.models import (
+            Hospital, HospitalCode, CommonCode, CodeMapping, FWARule
+        )
+    
+        # Get the current test session from the dependency override
+        db: Session = None
+        for dep_fn in app.dependency_overrides.values():
+            gen = dep_fn()
+            db = next(gen)
+            break
+    
+        # ── Hospitals ──────────────────────────────────────────────────────────
+        h_a = Hospital(hospital_code="TEST-FAC-A", hospital_name="Test Facility A",
+                       integration_type="API", status="ACTIVE")
+        h_b = Hospital(hospital_code="TEST-FAC-B", hospital_name="Test Facility B",
+                       integration_type="API", status="ACTIVE")
+        db.add_all([h_a, h_b])
+        db.flush()
+    
+        # ── Common Codes (test-only, no conflict with Vietnam seed) ────────────
+        cc_a = CommonCode(
+            common_code="TEST-COMMON-A", description="Test Common Code A",
+            category="TEST", active=True,
+        )
+        cc_b = CommonCode(
+            common_code="TEST-COMMON-B", description="Test Common Code B",
+            category="TEST", active=True,
+        )
+        db.add_all([cc_a, cc_b])
+        db.flush()
+    
+        # ── Hospital Codes ─────────────────────────────────────────────────────
+        hc_a = HospitalCode(
+            hospital_id=h_a.id, hospital_code="TEST-CODE-A",
+            description="Test Local Code A", active=True,
+        )
+        hc_b = HospitalCode(
+            hospital_id=h_b.id, hospital_code="TEST-CODE-B",
+            description="Test Local Code B", active=True,
+        )
+        db.add_all([hc_a, hc_b])
+        db.flush()
+    
+        # ── Code Mappings ──────────────────────────────────────────────────────
+        cm_a = CodeMapping(
+            hospital_id=h_a.id, hospital_code_id=hc_a.id, common_code_id=cc_a.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        cm_b = CodeMapping(
+            hospital_id=h_b.id, hospital_code_id=hc_b.id, common_code_id=cc_b.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        db.add_all([cm_a, cm_b])
+    
+        # ── FWA Rules (skip if already seeded by the Vietnam seeder) ──────────
+        existing_fwa = db.query(FWARule).filter(FWARule.rule_code == "FWA-001").first()
+        if not existing_fwa:
+            db.add(FWARule(
+                rule_code="FWA-001", rule_name="Duplicate Service",
+                rule_type="DUPLICATE",
+                configuration={"window_days": 1, "same_hospital": True, "same_patient": True},
+                action="REJECT", active=True,
+            ))
+    
+        existing_fwa3 = db.query(FWARule).filter(FWARule.rule_code == "FWA-003").first()
+        if not existing_fwa3:
+            db.add(FWARule(
+                rule_code="FWA-003", rule_name="Price Anomaly",
+                rule_type="PRICE_ANOMALY",
+                configuration={"threshold_percent": 20},
+                action="FLAG", active=True,
+            ))
+    
+        # ── Users ──────────────────────────────────────────────────────────────
+        from app.models import User, FacilityUser
+        from app.core.security import create_access_token
+    
+        u_a = User(email="user_a@test.com", password_hash="hash:pass")
+        u_b = User(email="user_b@test.com", password_hash="hash:pass")
+        db.add_all([u_a, u_b])
+        db.flush()
+    
+        fu_a = FacilityUser(user_id=u_a.id, hospital_id=h_a.id)
+        fu_b = FacilityUser(user_id=u_b.id, hospital_id=h_b.id)
+        db.add_all([fu_a, fu_b])
+    
+        db.commit()
+    
+>       token_a = create_access_token(data={"sub": u_a.email, "facility_id": h_a.id, "facility_code": h_a.hospital_code})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: create_access_token() got an unexpected keyword argument 'data'
+
+tests/conftest.py:190: TypeError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:00:22,305 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:00:22,315 | INFO     | app.main | Database tables verified.
+2026-09-10 13:00:22,343 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:00:22,902 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,903 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,903 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,904 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,904 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,905 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,905 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,906 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,906 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,907 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,907 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,908 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,908 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,908 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,909 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,909 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,909 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,910 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,910 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,911 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,911 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,912 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,913 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,913 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:22,914 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:00:22,915 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+___________ ERROR at setup of test_duplicate_transaction_idempotency ___________
+
+client = <starlette.testclient.TestClient object at 0x7811d816ec60>
+
+    @pytest.fixture(scope="function")
+    def seeded_client(client):
+        """
+        Augments the client fixture with two pre-seeded hospitals/codes.
+    
+        Uses test-only codes that won't conflict with the Vietnam seed data.
+        Facility A: hospital_code=TEST-FAC-A, local code=TEST-CODE-A → TEST-COMMON-A
+        Facility B: hospital_code=TEST-FAC-B, local code=TEST-CODE-B → TEST-COMMON-B
+        """
+        from app.models import (
+            Hospital, HospitalCode, CommonCode, CodeMapping, FWARule
+        )
+    
+        # Get the current test session from the dependency override
+        db: Session = None
+        for dep_fn in app.dependency_overrides.values():
+            gen = dep_fn()
+            db = next(gen)
+            break
+    
+        # ── Hospitals ──────────────────────────────────────────────────────────
+        h_a = Hospital(hospital_code="TEST-FAC-A", hospital_name="Test Facility A",
+                       integration_type="API", status="ACTIVE")
+        h_b = Hospital(hospital_code="TEST-FAC-B", hospital_name="Test Facility B",
+                       integration_type="API", status="ACTIVE")
+        db.add_all([h_a, h_b])
+        db.flush()
+    
+        # ── Common Codes (test-only, no conflict with Vietnam seed) ────────────
+        cc_a = CommonCode(
+            common_code="TEST-COMMON-A", description="Test Common Code A",
+            category="TEST", active=True,
+        )
+        cc_b = CommonCode(
+            common_code="TEST-COMMON-B", description="Test Common Code B",
+            category="TEST", active=True,
+        )
+        db.add_all([cc_a, cc_b])
+        db.flush()
+    
+        # ── Hospital Codes ─────────────────────────────────────────────────────
+        hc_a = HospitalCode(
+            hospital_id=h_a.id, hospital_code="TEST-CODE-A",
+            description="Test Local Code A", active=True,
+        )
+        hc_b = HospitalCode(
+            hospital_id=h_b.id, hospital_code="TEST-CODE-B",
+            description="Test Local Code B", active=True,
+        )
+        db.add_all([hc_a, hc_b])
+        db.flush()
+    
+        # ── Code Mappings ──────────────────────────────────────────────────────
+        cm_a = CodeMapping(
+            hospital_id=h_a.id, hospital_code_id=hc_a.id, common_code_id=cc_a.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        cm_b = CodeMapping(
+            hospital_id=h_b.id, hospital_code_id=hc_b.id, common_code_id=cc_b.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        db.add_all([cm_a, cm_b])
+    
+        # ── FWA Rules (skip if already seeded by the Vietnam seeder) ──────────
+        existing_fwa = db.query(FWARule).filter(FWARule.rule_code == "FWA-001").first()
+        if not existing_fwa:
+            db.add(FWARule(
+                rule_code="FWA-001", rule_name="Duplicate Service",
+                rule_type="DUPLICATE",
+                configuration={"window_days": 1, "same_hospital": True, "same_patient": True},
+                action="REJECT", active=True,
+            ))
+    
+        existing_fwa3 = db.query(FWARule).filter(FWARule.rule_code == "FWA-003").first()
+        if not existing_fwa3:
+            db.add(FWARule(
+                rule_code="FWA-003", rule_name="Price Anomaly",
+                rule_type="PRICE_ANOMALY",
+                configuration={"threshold_percent": 20},
+                action="FLAG", active=True,
+            ))
+    
+        # ── Users ──────────────────────────────────────────────────────────────
+        from app.models import User, FacilityUser
+        from app.core.security import create_access_token
+    
+        u_a = User(email="user_a@test.com", password_hash="hash:pass")
+        u_b = User(email="user_b@test.com", password_hash="hash:pass")
+        db.add_all([u_a, u_b])
+        db.flush()
+    
+        fu_a = FacilityUser(user_id=u_a.id, hospital_id=h_a.id)
+        fu_b = FacilityUser(user_id=u_b.id, hospital_id=h_b.id)
+        db.add_all([fu_a, fu_b])
+    
+        db.commit()
+    
+>       token_a = create_access_token(data={"sub": u_a.email, "facility_id": h_a.id, "facility_code": h_a.hospital_code})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: create_access_token() got an unexpected keyword argument 'data'
+
+tests/conftest.py:190: TypeError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:00:24,192 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:00:24,198 | INFO     | app.main | Database tables verified.
+2026-09-10 13:00:24,207 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:00:24,512 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,513 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,513 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,513 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,514 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,514 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,514 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,514 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,515 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,515 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,515 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,515 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,516 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,516 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,516 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,516 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,517 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,517 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,517 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,518 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,518 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,518 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,519 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,519 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:24,519 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:00:24,520 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+____________ ERROR at setup of test_demo_submit_works_without_auth _____________
+
+client = <starlette.testclient.TestClient object at 0x7811d81fbb60>
+
+    @pytest.fixture(scope="function")
+    def seeded_client(client):
+        """
+        Augments the client fixture with two pre-seeded hospitals/codes.
+    
+        Uses test-only codes that won't conflict with the Vietnam seed data.
+        Facility A: hospital_code=TEST-FAC-A, local code=TEST-CODE-A → TEST-COMMON-A
+        Facility B: hospital_code=TEST-FAC-B, local code=TEST-CODE-B → TEST-COMMON-B
+        """
+        from app.models import (
+            Hospital, HospitalCode, CommonCode, CodeMapping, FWARule
+        )
+    
+        # Get the current test session from the dependency override
+        db: Session = None
+        for dep_fn in app.dependency_overrides.values():
+            gen = dep_fn()
+            db = next(gen)
+            break
+    
+        # ── Hospitals ──────────────────────────────────────────────────────────
+        h_a = Hospital(hospital_code="TEST-FAC-A", hospital_name="Test Facility A",
+                       integration_type="API", status="ACTIVE")
+        h_b = Hospital(hospital_code="TEST-FAC-B", hospital_name="Test Facility B",
+                       integration_type="API", status="ACTIVE")
+        db.add_all([h_a, h_b])
+        db.flush()
+    
+        # ── Common Codes (test-only, no conflict with Vietnam seed) ────────────
+        cc_a = CommonCode(
+            common_code="TEST-COMMON-A", description="Test Common Code A",
+            category="TEST", active=True,
+        )
+        cc_b = CommonCode(
+            common_code="TEST-COMMON-B", description="Test Common Code B",
+            category="TEST", active=True,
+        )
+        db.add_all([cc_a, cc_b])
+        db.flush()
+    
+        # ── Hospital Codes ─────────────────────────────────────────────────────
+        hc_a = HospitalCode(
+            hospital_id=h_a.id, hospital_code="TEST-CODE-A",
+            description="Test Local Code A", active=True,
+        )
+        hc_b = HospitalCode(
+            hospital_id=h_b.id, hospital_code="TEST-CODE-B",
+            description="Test Local Code B", active=True,
+        )
+        db.add_all([hc_a, hc_b])
+        db.flush()
+    
+        # ── Code Mappings ──────────────────────────────────────────────────────
+        cm_a = CodeMapping(
+            hospital_id=h_a.id, hospital_code_id=hc_a.id, common_code_id=cc_a.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        cm_b = CodeMapping(
+            hospital_id=h_b.id, hospital_code_id=hc_b.id, common_code_id=cc_b.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        db.add_all([cm_a, cm_b])
+    
+        # ── FWA Rules (skip if already seeded by the Vietnam seeder) ──────────
+        existing_fwa = db.query(FWARule).filter(FWARule.rule_code == "FWA-001").first()
+        if not existing_fwa:
+            db.add(FWARule(
+                rule_code="FWA-001", rule_name="Duplicate Service",
+                rule_type="DUPLICATE",
+                configuration={"window_days": 1, "same_hospital": True, "same_patient": True},
+                action="REJECT", active=True,
+            ))
+    
+        existing_fwa3 = db.query(FWARule).filter(FWARule.rule_code == "FWA-003").first()
+        if not existing_fwa3:
+            db.add(FWARule(
+                rule_code="FWA-003", rule_name="Price Anomaly",
+                rule_type="PRICE_ANOMALY",
+                configuration={"threshold_percent": 20},
+                action="FLAG", active=True,
+            ))
+    
+        # ── Users ──────────────────────────────────────────────────────────────
+        from app.models import User, FacilityUser
+        from app.core.security import create_access_token
+    
+        u_a = User(email="user_a@test.com", password_hash="hash:pass")
+        u_b = User(email="user_b@test.com", password_hash="hash:pass")
+        db.add_all([u_a, u_b])
+        db.flush()
+    
+        fu_a = FacilityUser(user_id=u_a.id, hospital_id=h_a.id)
+        fu_b = FacilityUser(user_id=u_b.id, hospital_id=h_b.id)
+        db.add_all([fu_a, fu_b])
+    
+        db.commit()
+    
+>       token_a = create_access_token(data={"sub": u_a.email, "facility_id": h_a.id, "facility_code": h_a.hospital_code})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: create_access_token() got an unexpected keyword argument 'data'
+
+tests/conftest.py:190: TypeError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:00:24,699 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:00:24,705 | INFO     | app.main | Database tables verified.
+2026-09-10 13:00:24,716 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:00:25,037 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,038 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,038 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,038 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,039 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,039 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,039 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,040 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,040 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,040 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,040 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,041 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,041 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,042 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,042 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,043 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,043 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,043 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,044 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,044 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,045 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,045 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,046 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,046 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,047 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:00:25,048 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+___________ ERROR at setup of test_demo_submit_duplicate_idempotency ___________
+
+client = <starlette.testclient.TestClient object at 0x7811d3e11d90>
+
+    @pytest.fixture(scope="function")
+    def seeded_client(client):
+        """
+        Augments the client fixture with two pre-seeded hospitals/codes.
+    
+        Uses test-only codes that won't conflict with the Vietnam seed data.
+        Facility A: hospital_code=TEST-FAC-A, local code=TEST-CODE-A → TEST-COMMON-A
+        Facility B: hospital_code=TEST-FAC-B, local code=TEST-CODE-B → TEST-COMMON-B
+        """
+        from app.models import (
+            Hospital, HospitalCode, CommonCode, CodeMapping, FWARule
+        )
+    
+        # Get the current test session from the dependency override
+        db: Session = None
+        for dep_fn in app.dependency_overrides.values():
+            gen = dep_fn()
+            db = next(gen)
+            break
+    
+        # ── Hospitals ──────────────────────────────────────────────────────────
+        h_a = Hospital(hospital_code="TEST-FAC-A", hospital_name="Test Facility A",
+                       integration_type="API", status="ACTIVE")
+        h_b = Hospital(hospital_code="TEST-FAC-B", hospital_name="Test Facility B",
+                       integration_type="API", status="ACTIVE")
+        db.add_all([h_a, h_b])
+        db.flush()
+    
+        # ── Common Codes (test-only, no conflict with Vietnam seed) ────────────
+        cc_a = CommonCode(
+            common_code="TEST-COMMON-A", description="Test Common Code A",
+            category="TEST", active=True,
+        )
+        cc_b = CommonCode(
+            common_code="TEST-COMMON-B", description="Test Common Code B",
+            category="TEST", active=True,
+        )
+        db.add_all([cc_a, cc_b])
+        db.flush()
+    
+        # ── Hospital Codes ─────────────────────────────────────────────────────
+        hc_a = HospitalCode(
+            hospital_id=h_a.id, hospital_code="TEST-CODE-A",
+            description="Test Local Code A", active=True,
+        )
+        hc_b = HospitalCode(
+            hospital_id=h_b.id, hospital_code="TEST-CODE-B",
+            description="Test Local Code B", active=True,
+        )
+        db.add_all([hc_a, hc_b])
+        db.flush()
+    
+        # ── Code Mappings ──────────────────────────────────────────────────────
+        cm_a = CodeMapping(
+            hospital_id=h_a.id, hospital_code_id=hc_a.id, common_code_id=cc_a.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        cm_b = CodeMapping(
+            hospital_id=h_b.id, hospital_code_id=hc_b.id, common_code_id=cc_b.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        db.add_all([cm_a, cm_b])
+    
+        # ── FWA Rules (skip if already seeded by the Vietnam seeder) ──────────
+        existing_fwa = db.query(FWARule).filter(FWARule.rule_code == "FWA-001").first()
+        if not existing_fwa:
+            db.add(FWARule(
+                rule_code="FWA-001", rule_name="Duplicate Service",
+                rule_type="DUPLICATE",
+                configuration={"window_days": 1, "same_hospital": True, "same_patient": True},
+                action="REJECT", active=True,
+            ))
+    
+        existing_fwa3 = db.query(FWARule).filter(FWARule.rule_code == "FWA-003").first()
+        if not existing_fwa3:
+            db.add(FWARule(
+                rule_code="FWA-003", rule_name="Price Anomaly",
+                rule_type="PRICE_ANOMALY",
+                configuration={"threshold_percent": 20},
+                action="FLAG", active=True,
+            ))
+    
+        # ── Users ──────────────────────────────────────────────────────────────
+        from app.models import User, FacilityUser
+        from app.core.security import create_access_token
+    
+        u_a = User(email="user_a@test.com", password_hash="hash:pass")
+        u_b = User(email="user_b@test.com", password_hash="hash:pass")
+        db.add_all([u_a, u_b])
+        db.flush()
+    
+        fu_a = FacilityUser(user_id=u_a.id, hospital_id=h_a.id)
+        fu_b = FacilityUser(user_id=u_b.id, hospital_id=h_b.id)
+        db.add_all([fu_a, fu_b])
+    
+        db.commit()
+    
+>       token_a = create_access_token(data={"sub": u_a.email, "facility_id": h_a.id, "facility_code": h_a.hospital_code})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: create_access_token() got an unexpected keyword argument 'data'
+
+tests/conftest.py:190: TypeError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:00:25,219 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:00:25,226 | INFO     | app.main | Database tables verified.
+2026-09-10 13:00:25,237 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:00:25,611 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,612 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,612 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,612 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,613 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,613 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,614 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,614 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,614 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,615 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,615 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,615 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,615 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,616 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,616 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,616 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,617 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,617 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,618 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,618 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,619 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,619 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,620 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,620 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:25,620 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:00:25,622 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+______________ ERROR at setup of test_facility_history_isolation _______________
+
+client = <starlette.testclient.TestClient object at 0x7811d81fb9e0>
+
+    @pytest.fixture(scope="function")
+    def seeded_client(client):
+        """
+        Augments the client fixture with two pre-seeded hospitals/codes.
+    
+        Uses test-only codes that won't conflict with the Vietnam seed data.
+        Facility A: hospital_code=TEST-FAC-A, local code=TEST-CODE-A → TEST-COMMON-A
+        Facility B: hospital_code=TEST-FAC-B, local code=TEST-CODE-B → TEST-COMMON-B
+        """
+        from app.models import (
+            Hospital, HospitalCode, CommonCode, CodeMapping, FWARule
+        )
+    
+        # Get the current test session from the dependency override
+        db: Session = None
+        for dep_fn in app.dependency_overrides.values():
+            gen = dep_fn()
+            db = next(gen)
+            break
+    
+        # ── Hospitals ──────────────────────────────────────────────────────────
+        h_a = Hospital(hospital_code="TEST-FAC-A", hospital_name="Test Facility A",
+                       integration_type="API", status="ACTIVE")
+        h_b = Hospital(hospital_code="TEST-FAC-B", hospital_name="Test Facility B",
+                       integration_type="API", status="ACTIVE")
+        db.add_all([h_a, h_b])
+        db.flush()
+    
+        # ── Common Codes (test-only, no conflict with Vietnam seed) ────────────
+        cc_a = CommonCode(
+            common_code="TEST-COMMON-A", description="Test Common Code A",
+            category="TEST", active=True,
+        )
+        cc_b = CommonCode(
+            common_code="TEST-COMMON-B", description="Test Common Code B",
+            category="TEST", active=True,
+        )
+        db.add_all([cc_a, cc_b])
+        db.flush()
+    
+        # ── Hospital Codes ─────────────────────────────────────────────────────
+        hc_a = HospitalCode(
+            hospital_id=h_a.id, hospital_code="TEST-CODE-A",
+            description="Test Local Code A", active=True,
+        )
+        hc_b = HospitalCode(
+            hospital_id=h_b.id, hospital_code="TEST-CODE-B",
+            description="Test Local Code B", active=True,
+        )
+        db.add_all([hc_a, hc_b])
+        db.flush()
+    
+        # ── Code Mappings ──────────────────────────────────────────────────────
+        cm_a = CodeMapping(
+            hospital_id=h_a.id, hospital_code_id=hc_a.id, common_code_id=cc_a.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        cm_b = CodeMapping(
+            hospital_id=h_b.id, hospital_code_id=hc_b.id, common_code_id=cc_b.id,
+            confidence=1.0, mapping_status="MAPPED",
+        )
+        db.add_all([cm_a, cm_b])
+    
+        # ── FWA Rules (skip if already seeded by the Vietnam seeder) ──────────
+        existing_fwa = db.query(FWARule).filter(FWARule.rule_code == "FWA-001").first()
+        if not existing_fwa:
+            db.add(FWARule(
+                rule_code="FWA-001", rule_name="Duplicate Service",
+                rule_type="DUPLICATE",
+                configuration={"window_days": 1, "same_hospital": True, "same_patient": True},
+                action="REJECT", active=True,
+            ))
+    
+        existing_fwa3 = db.query(FWARule).filter(FWARule.rule_code == "FWA-003").first()
+        if not existing_fwa3:
+            db.add(FWARule(
+                rule_code="FWA-003", rule_name="Price Anomaly",
+                rule_type="PRICE_ANOMALY",
+                configuration={"threshold_percent": 20},
+                action="FLAG", active=True,
+            ))
+    
+        # ── Users ──────────────────────────────────────────────────────────────
+        from app.models import User, FacilityUser
+        from app.core.security import create_access_token
+    
+        u_a = User(email="user_a@test.com", password_hash="hash:pass")
+        u_b = User(email="user_b@test.com", password_hash="hash:pass")
+        db.add_all([u_a, u_b])
+        db.flush()
+    
+        fu_a = FacilityUser(user_id=u_a.id, hospital_id=h_a.id)
+        fu_b = FacilityUser(user_id=u_b.id, hospital_id=h_b.id)
+        db.add_all([fu_a, fu_b])
+    
+        db.commit()
+    
+>       token_a = create_access_token(data={"sub": u_a.email, "facility_id": h_a.id, "facility_code": h_a.hospital_code})
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: create_access_token() got an unexpected keyword argument 'data'
+
+tests/conftest.py:190: TypeError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-10 13:00:25,799 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-10 13:00:25,806 | INFO     | app.main | Database tables verified.
+2026-09-10 13:00:25,817 | INFO     | app.seed.seed_data | Seeding database from data/vietnam...
+2026-09-10 13:00:26,135 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,136 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,137 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,137 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,138 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,138 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,138 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,139 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,139 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,139 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,139 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,140 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,140 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,140 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,141 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,141 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,141 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,142 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,142 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,142 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,143 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,143 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,144 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,144 | ERROR    | app.seed.seed_data | Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+2026-09-10 13:00:26,144 | INFO     | app.seed.seed_data | Seed data loaded successfully.
+2026-09-10 13:00:26,146 | INFO     | app.main | Seed data loaded.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:35 Database tables verified.
+INFO     app.seed.seed_data:seed_data.py:27 Seeding database from data/vietnam...
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0001: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0002: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0003: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0004: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0005: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0006: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0007: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0008: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0009: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0010: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0011: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0012: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0013: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0014: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0015: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0016: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0017: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0018: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0019: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0020: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0021: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0022: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0023: asyncio.run() cannot be called from a running event loop
+ERROR    app.seed.seed_data:seed_data.py:179 Error seeding transaction TXN-20260908-0024: asyncio.run() cannot be called from a running event loop
+INFO     app.seed.seed_data:seed_data.py:181 Seed data loaded successfully.
+INFO     app.main:main.py:43 Seed data loaded.
+=============================== warnings summary ===============================
+venv/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+venv/lib/python3.12/site-packages/starlette/testclient.py:41
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/starlette/testclient.py:41: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    [], typing.ContextManager[anyio.abc.BlockingPortal]
+
+venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:284
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/test_security.py: 17 warnings
+  /home/amar/Desktop/Vietnam/backend/app/seed/seed_data.py:179: RuntimeWarning: coroutine 'process_transaction' was never awaited
+    logger.error(f"Error seeding transaction {t['transaction_id']}: {e}")
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_security.py::test_login_returns_token
+tests/test_security.py::test_authenticated_facility_can_access_own_history
+tests/test_security.py::test_auth_me_returns_correct_facility
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+tests/test_security.py::test_authenticated_facility_can_access_own_history
+tests/test_security.py::test_auth_me_returns_correct_facility
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:368: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    decoded = self.decode_complete(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/test_security.py::test_facility_a_cannot_see_facility_b_transaction
+ERROR tests/test_security.py::test_facility_a_cannot_submit_as_facility_b - T...
+ERROR tests/test_security.py::test_facility_codes_returns_only_own_codes - Ty...
+ERROR tests/test_security.py::test_duplicate_transaction_idempotency - TypeEr...
+ERROR tests/test_security.py::test_demo_submit_works_without_auth - TypeError...
+ERROR tests/test_security.py::test_demo_submit_duplicate_idempotency - TypeEr...
+ERROR tests/test_security.py::test_facility_history_isolation - TypeError: cr...
+================== 10 passed, 26 warnings, 7 errors in 9.41s ===================

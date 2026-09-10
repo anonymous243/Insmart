@@ -1,0 +1,6 @@
+name,version,country,source_url,status,verified,notes
+Vietnam ICD-10,2024,VN,https://fhir.hl7.org.vn,ACTIVE,false,Reference only
+Vietnam LOINC,2.76,VN,https://fhir.hl7.org.vn,ACTIVE,false,Reference only
+Vietnam SNOMED CT subset,2024,VN,https://fhir.hl7.org.vn,ACTIVE,false,Reference only
+BHYT Terminology (Decision 1804/QĐ-BYT),2026,VN,https://moh.gov.vn,ACTIVE,false,Reference only
+Central Common Code Master,1.0,VN,internal,ACTIVE,true,Internal verified common codes

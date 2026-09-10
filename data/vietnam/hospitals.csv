@@ -1,0 +1,5 @@
+hospital_code,hospital_name,integration_type,status
+H001,Hanoi General Hospital,API,ACTIVE
+H002,Saigon Medical Center,API,ACTIVE
+H003,Central Vietnam Hospital,API,ACTIVE
+F033,Apollo Hospital,API,ACTIVE

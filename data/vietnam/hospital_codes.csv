@@ -1,0 +1,93 @@
+hospital_code,local_code,description,category,source_system,version,notes,synthetic_demo,active
+H001,GEN001,General Consult,CONSULTATION,H001-HIS,1.0,Synthetic demo code,true,true
+H001,CARD001,Cardiology Consult,CONSULTATION,H001-HIS,1.0,Synthetic demo code,true,true
+H001,PED001,Pediatric Consult,CONSULTATION,H001-HIS,1.0,Synthetic demo code,true,true
+H001,DERM001,Derm Consult,CONSULTATION,H001-HIS,1.0,Synthetic demo code,true,true
+H001,ORTH001,Ortho Consult,CONSULTATION,H001-HIS,1.0,Synthetic demo code,true,true
+H001,ENT001,ENT Consult,CONSULTATION,H001-HIS,1.0,Synthetic demo code,true,true
+H001,OPH001,Ophthalmology Consult,CONSULTATION,H001-HIS,1.0,Synthetic demo code,true,true
+H001,CBC001,CBC Test,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,GLU001,Blood Glucose,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,LFT001,LFT,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,KFT001,Kidney Func,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,LIP001,Lipid Panel,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,TSH001,TSH Test,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,URI001,Urine Analysis,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,CRP001,CRP,LABORATORY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,XR001,CXR,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,XR002,Xray Limb,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,XR003,Spine Xray,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,US001,Abdomen US,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,US002,Pelvic US,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,CT001,Head CT,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,CT002,Chest CT,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,MRI001,Brain MRI,RADIOLOGY,H001-HIS,1.0,Synthetic demo code,true,true
+H001,ECG001,ECG,DIAGNOSTIC,H001-HIS,1.0,Synthetic demo code,true,true
+H001,END001,Endoscopy,PROCEDURE,H001-HIS,1.0,Synthetic demo code,true,true
+H001,WND001,Wound Dressing,PROCEDURE,H001-HIS,1.0,Synthetic demo code,true,true
+H001,SUT001,Suturing,PROCEDURE,H001-HIS,1.0,Synthetic demo code,true,true
+H001,PEC001,ECG Monitor,PROCEDURE,H001-HIS,1.0,Synthetic demo code,true,true
+H001,ECH001,Echo,DIAGNOSTIC,H001-HIS,1.0,Synthetic demo code,true,true
+H001,PAT001,Path Test,DIAGNOSTIC,H001-HIS,1.0,Synthetic demo code,true,true
+H002,GEN-201,Consult General,CONSULTATION,H002-HIS,1.0,Synthetic demo code,true,true
+H002,CC-102,Consult Cardiology,CONSULTATION,H002-HIS,1.0,Synthetic demo code,true,true
+H002,PED-115,Consult Pediatrics,CONSULTATION,H002-HIS,1.0,Synthetic demo code,true,true
+H002,DERM-310,Consult Dermatology,CONSULTATION,H002-HIS,1.0,Synthetic demo code,true,true
+H002,ORTH-410,Consult Orthopedics,CONSULTATION,H002-HIS,1.0,Synthetic demo code,true,true
+H002,ENT-501,Consult ENT,CONSULTATION,H002-HIS,1.0,Synthetic demo code,true,true
+H002,OPH-602,Consult Ophthalmology,CONSULTATION,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-22,Lab Complete Blood,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-31,Lab Fasting Glu,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-45,Lab LFT Profile,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-46,Lab Kidney Profile,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-50,Lab Lipid,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-55,Lab TSH,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-10,Lab Urine,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,LAB-60,Lab CRP,LABORATORY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,RAD-09,Rad Chest Xray,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,RAD-10,Rad Extremity,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,RAD-11,Rad Spine,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,US-05,Ultrasound Abd,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,US-06,Ultrasound Pelvis,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,CT-18,CT Head,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,CT-19,CT Chest,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,MRI-02,MRI Brain,RADIOLOGY,H002-HIS,1.0,Synthetic demo code,true,true
+H002,ECG-07,ECG Diagnostic,DIAGNOSTIC,H002-HIS,1.0,Synthetic demo code,true,true
+H002,PROC-30,Endoscopy,PROCEDURE,H002-HIS,1.0,Synthetic demo code,true,true
+H002,PROC-40,Wound Care,PROCEDURE,H002-HIS,1.0,Synthetic demo code,true,true
+H002,PROC-45,Sutures,PROCEDURE,H002-HIS,1.0,Synthetic demo code,true,true
+H002,PROC-10,ECG Setup,PROCEDURE,H002-HIS,1.0,Synthetic demo code,true,true
+H002,DIAG-20,Echocardiogram,DIAGNOSTIC,H002-HIS,1.0,Synthetic demo code,true,true
+H002,DIAG-50,Pathology Review,DIAGNOSTIC,H002-HIS,1.0,Synthetic demo code,true,true
+H003,GEN-C02,OPD General,CONSULTATION,H003-HIS,1.0,Synthetic demo code,true,true
+H003,CARD-C01,OPD Cardiology,CONSULTATION,H003-HIS,1.0,Synthetic demo code,true,true
+H003,PED-C03,OPD Peds,CONSULTATION,H003-HIS,1.0,Synthetic demo code,true,true
+H003,DERM-C04,OPD Dermatology,CONSULTATION,H003-HIS,1.0,Synthetic demo code,true,true
+H003,ORTH-C05,OPD Ortho,CONSULTATION,H003-HIS,1.0,Synthetic demo code,true,true
+H003,ENT-C06,OPD ENT,CONSULTATION,H003-HIS,1.0,Synthetic demo code,true,true
+H003,OPH-C07,OPD Ophthalmology,CONSULTATION,H003-HIS,1.0,Synthetic demo code,true,true
+H003,BLOOD-CBC,Blood Test - CBC,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,BLOOD-GLU,Blood Test - Glucose,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,BLOOD-LFT,Blood Test - LFT,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,BLOOD-KFT,Blood Test - KFT,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,BLOOD-LIP,Blood Test - Lipid,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,BLOOD-TSH,Blood Test - TSH,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,URINE-01,Urine Test,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,BLOOD-CRP,Blood Test - CRP,LABORATORY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,XR-CHEST,X-Ray Chest,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,XR-EXT,X-Ray Ext,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,XR-SPINE,X-Ray Spine,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,US-ABD,US Abdomen,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,US-PELV,US Pelvic,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,CT-HEAD,CT Scan Head,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,CT-CHEST,CT Scan Chest,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,MRI-BRN,MRI Scan Brain,RADIOLOGY,H003-HIS,1.0,Synthetic demo code,true,true
+H003,ECG-12,12 Lead Electrocardiogram,DIAGNOSTIC,H003-HIS,1.0,Synthetic demo code,true,true
+H003,PR-ENDO,Procedure Endoscopy,PROCEDURE,H003-HIS,1.0,Synthetic demo code,true,true
+H003,PR-WND,Procedure Wound,PROCEDURE,H003-HIS,1.0,Synthetic demo code,true,true
+H003,PR-SUT,Procedure Suture,PROCEDURE,H003-HIS,1.0,Synthetic demo code,true,true
+H003,PR-ECG,Procedure ECG,PROCEDURE,H003-HIS,1.0,Synthetic demo code,true,true
+H003,DG-ECHO,Diagnostic Echo,DIAGNOSTIC,H003-HIS,1.0,Synthetic demo code,true,true
+H003,DG-PATH,Diagnostic Path,DIAGNOSTIC,H003-HIS,1.0,Synthetic demo code,true,true
+F033,AP-CT-001,CT Scan Head,RADIOLOGY,F033-HIS,1.0,Synthetic demo code,true,true
+F033,AP-LAB-010,CBC Test,LABORATORY,F033-HIS,1.0,Synthetic demo code,true,true

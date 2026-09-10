@@ -1,0 +1,6 @@
+rule_code,rule_name,rule_type,configuration,action,active
+FWA-001,Duplicate Service,DUPLICATE,"{""window"": ""same_day""}",FWA_FLAG,true
+FWA-002,Frequency Check,FREQUENCY,"{""max_occurrences"": 3, ""window_days"": 7}",FWA_REVIEW,true
+FWA-003,Price Anomaly,PRICE,"{""compare_to"": ""benchmark_maximum""}",PRICE_FLAG,true
+FWA-004,Unusual Quantity,QUANTITY,"{""threshold"": 5}",FWA_REVIEW,true
+FWA-005,Unusual Same-Day Combination,COMBINATION,"{""combinations"": [[""CONS-CARD"", ""PROC-WOUND""]]}",FWA_REVIEW,true
