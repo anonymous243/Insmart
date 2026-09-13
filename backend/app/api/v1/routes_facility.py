@@ -8,19 +8,52 @@ from app.schemas import TransactionOut
 
 router = APIRouter(prefix="/facility", tags=["Facility API"])
 
-@router.get("/history", response_model=list[dict])
+from typing import Optional
+from fastapi import Query
+from sqlalchemy import or_, and_
+from app.schemas import TransactionOut, PaginationResponse
+from app.utils.pagination import decode_cursor, encode_cursor
+
+@router.get("/history", response_model=PaginationResponse[dict])
 def get_facility_history(
+    cursor: Optional[str] = None,
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
     fac_user: FacilityUser = Depends(get_current_facility_user)
 ):
-    txns = (
+    query = (
         db.query(Transaction)
         .filter(Transaction.hospital_id == fac_user.hospital_id)
-        .order_by(Transaction.created_at.desc())
-        .limit(200)
+    )
+
+    if cursor:
+        try:
+            cursor_created_at, cursor_id = decode_cursor(cursor)
+            query = query.filter(
+                or_(
+                    Transaction.created_at < cursor_created_at,
+                    and_(
+                        Transaction.created_at == cursor_created_at,
+                        Transaction.id < cursor_id
+                    )
+                )
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid cursor")
+
+    # Fetch limit + 1 to determine if there are more results
+    txns = (
+        query
+        .order_by(Transaction.created_at.desc(), Transaction.id.desc())
+        .limit(limit + 1)
         .all()
     )
-    return [
+
+    has_more = len(txns) > limit
+    if has_more:
+        txns = txns[:limit]
+
+    items = [
         {
             "id": t.id,
             "transaction_id": t.transaction_id,
@@ -31,6 +64,17 @@ def get_facility_history(
         }
         for t in txns
     ]
+    
+    next_cursor = None
+    if has_more and txns:
+        last_item = txns[-1]
+        next_cursor = encode_cursor(last_item.created_at, last_item.id)
+
+    return {
+        "items": items,
+        "next_cursor": next_cursor,
+        "has_more": has_more
+    }
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionOut)
 def get_facility_transaction(
@@ -99,9 +143,23 @@ def get_facility_codes(
     CodeMapping and CommonCode for the normalization preview:
       local_code → common_code
     """
-    # Fetch active hospital codes for this facility
-    hc_list = (
-        db.query(HospitalCode)
+    # Fetch active hospital codes for this facility and outer join any active mapped codes
+    # This set-based query avoids N+1 per-row queries.
+    from sqlalchemy import and_
+    
+    rows = (
+        db.query(HospitalCode, CodeMapping, CommonCode)
+        .outerjoin(
+            CodeMapping,
+            and_(
+                CodeMapping.hospital_code_id == HospitalCode.id,
+                CodeMapping.mapping_status == "MAPPED"
+            )
+        )
+        .outerjoin(
+            CommonCode,
+            CommonCode.id == CodeMapping.common_code_id
+        )
         .filter(
             HospitalCode.hospital_id == fac_user.hospital_id,
             HospitalCode.active == True,
@@ -110,22 +168,12 @@ def get_facility_codes(
     )
 
     result = []
-    for hc in hc_list:
-        # Find the mapped common code (if any)
-        mapping = (
-            db.query(CodeMapping)
-            .filter(
-                CodeMapping.hospital_id == fac_user.hospital_id,
-                CodeMapping.hospital_code_id == hc.id,
-                CodeMapping.mapping_status == "MAPPED",
-            )
-            .first()
-        )
+    for hc, mapping, common_code_obj in rows:
         common_code = None
         common_description = None
-        if mapping and mapping.common_code_obj:
-            common_code = mapping.common_code_obj.common_code
-            common_description = mapping.common_code_obj.description
+        if mapping and common_code_obj:
+            common_code = common_code_obj.common_code
+            common_description = common_code_obj.description
 
         result.append({
             "local_code": hc.hospital_code,

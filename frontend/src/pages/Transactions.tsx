@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { api, Transaction, TransactionListItem, Hospital, CodeMappingRow, BenchmarkRow } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
 import { CURRENCY_SYMBOL, CURRENCY_LOCALE } from '../config';
+import { useAuth } from '../context/AuthContext';
 
 function fmt(n: number) {
   return new Intl.NumberFormat(CURRENCY_LOCALE, { minimumFractionDigits: 2 }).format(n);
@@ -346,6 +347,7 @@ const HISTransactionTester: React.FC<{ onResult: (txn: Transaction) => void }> =
   
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const { logout } = useAuth();
 
   useEffect(() => {
     Promise.all([
@@ -357,8 +359,14 @@ const HISTransactionTester: React.FC<{ onResult: (txn: Transaction) => void }> =
       setMappings(ms);
       setBenchmarks(bs);
       if (hs.length > 0) setHospitalId(hs[0].hospital_code);
-    }).catch(e => console.error(e));
-  }, []);
+    }).catch(e => {
+      console.error(e);
+      if (e.message && (e.message.toLowerCase().includes('unauthorized') || e.message.toLowerCase().includes('expired'))) {
+        logout();
+      }
+      setError(e.message || 'Failed to load simulation data');
+    });
+  }, [logout]);
 
   const handleAddItem = () => {
     setItems([...items, { hospital_code: '', description: '', quantity: 1, unit_price: 0 }]);
@@ -505,6 +513,8 @@ const HISTransactionTester: React.FC<{ onResult: (txn: Transaction) => void }> =
 
 export const Transactions: React.FC = () => {
   const [list, setList] = useState<TransactionListItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [selected, setSelected] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -518,13 +528,40 @@ export const Transactions: React.FC = () => {
 
   const [resetting, setResetting] = useState(false);
   const [resetMsg, setResetMsg] = useState('');
+  const { logout } = useAuth();
 
-  const refresh = () => api.getTransactions().then(setList).finally(() => setLoading(false));
+  const refresh = (cursor?: string) => {
+    setLoading(true);
+    api.getTransactions(cursor)
+      .then(res => {
+        if (cursor) {
+          setList(prev => [...prev, ...res.items]);
+        } else {
+          setList(res.items);
+        }
+        setNextCursor(res.next_cursor);
+        setHasMore(res.has_more);
+      })
+      .catch(e => {
+        if (e.message && (e.message.toLowerCase().includes('unauthorized') || e.message.toLowerCase().includes('expired'))) {
+          logout();
+        }
+        setSubmitError(e.message || 'Failed to load transactions');
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => { refresh(); }, []);
 
   const openDetail = (id: string) => {
-    api.getTransaction(id).then(t => { setResultTxn(null); setSelected(t); });
+    api.getTransactionAdmin(id)
+      .then(t => { setResultTxn(null); setSelected(t); setSubmitError(''); })
+      .catch(e => {
+        if (e.message && (e.message.toLowerCase().includes('unauthorized') || e.message.toLowerCase().includes('expired'))) {
+          logout();
+        }
+        setSubmitError(e.message || 'Failed to load transaction detail');
+      });
   };
 
   const handleReset = async () => {
@@ -600,9 +637,10 @@ export const Transactions: React.FC = () => {
         items: scenario.items,
       });
       clearInterval(intervalRef);
-      // Mark all stages complete from actual events
-      setSimulatingStages(getCompletedStages(txn.integration_events));
-      setResultTxn(txn);
+      // Fetch full admin detail (includes all relations)
+      const full = await api.getTransactionAdmin(txn.transaction_id);
+      setSimulatingStages(getCompletedStages(full.integration_events));
+      setResultTxn(full);
       refresh();
     } catch (e: any) {
       clearInterval(intervalRef);
@@ -720,6 +758,18 @@ export const Transactions: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                
+                {hasMore && (
+                  <div style={{ textAlign: 'center', padding: '16px 0', borderTop: '1px solid var(--border)' }}>
+                    <button 
+                      onClick={() => refresh(nextCursor!)} 
+                      disabled={loading}
+                      className="btn btn-secondary"
+                    >
+                      {loading ? 'Loading...' : 'Load More'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

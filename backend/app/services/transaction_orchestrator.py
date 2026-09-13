@@ -2,12 +2,16 @@
 TransactionOrchestrator
 The heart of the platform. Orchestrates the complete claim processing pipeline:
 
-  Receive → Validate → Normalize Codes → Benchmark → FWA → TPA → HIS Callback
+  Receive → Validate → Normalize Codes → Benchmark → FWA
+  → Enqueue TPA job (C3 async worker boundary)
+  → Return HTTP 202
+
+External operations (TPA adjudication, HIS callback) are executed by the
+C3 background worker via the durable BackgroundJob queue, NOT in the HTTP path.
 
 Business logic lives here, NOT in route handlers.
 """
 import logging
-import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -15,19 +19,20 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import (
     Hospital, Transaction, TransactionItem,
-    FWAResult, Adjudication, IntegrationEvent,
+    FWAResult, IntegrationEvent, ExternalOperation, BackgroundJob,
 )
 from app.schemas import (
-    TransactionIn, TransactionOut,
-    TPAClaimIn, TPAItemIn, HISCallbackIn,
+    TransactionIn,
 )
 from app.services.code_mapping_service import CodeMappingService
 from app.services.benchmark_service import BenchmarkService
 from app.services.fwa_engine import FWAEngine, FWARuleInput
-from app.services.tpa_client import call_tpa
-from app.services.his_callback_service import send_his_callback
 
 logger = logging.getLogger(__name__)
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 
 def _log_event(
@@ -49,13 +54,128 @@ def _log_event(
     db.flush()
 
 
+def _enqueue_his_callback_job(
+    db: Session,
+    txn: Transaction,
+    claim_id: int | None,
+    adj_status: str,
+    adj_amount: float,
+    adj_reason: str | None,
+) -> BackgroundJob:
+    """
+    Atomically create ExternalOperation + BackgroundJob for a HIS callback.
+    Called within an active transaction — caller must db.commit().
+    """
+    idempotency_key = f"his_cb_{txn.transaction_id}_{adj_status}"
+
+    # Create ExternalOperation (C2 record) atomically
+    try:
+        with db.begin_nested():
+            op = ExternalOperation(
+                provider="HIS_CALLBACK",
+                operation="STATUS_UPDATE",
+                idempotency_key=idempotency_key,
+                transaction_id=txn.id,
+            )
+            db.add(op)
+            db.flush()
+    except IntegrityError:
+        # Already exists (idempotent — re-fetch)
+        from sqlalchemy import select
+        op = db.execute(
+            select(ExternalOperation).where(
+                ExternalOperation.provider == "HIS_CALLBACK",
+                ExternalOperation.operation == "STATUS_UPDATE",
+                ExternalOperation.idempotency_key == idempotency_key,
+            )
+        ).scalar_one()
+
+    job = BackgroundJob(
+        job_type="HIS_CALLBACK",
+        status="PENDING",
+        payload={
+            "adjudication_status": adj_status,
+            "adjudication_approved_amount": adj_amount,
+            "adjudication_reason": adj_reason,
+            "idempotency_key": idempotency_key,
+        },
+        transaction_id=txn.id,
+        claim_id=claim_id,
+        external_operation_id=op.id,
+        max_attempts=5,
+        next_attempt_at=_utcnow(),
+    )
+    db.add(job)
+    db.flush()
+    return job
+
+
+def _enqueue_tpa_adjudication_job(
+    db: Session,
+    txn: Transaction,
+    claim_id: int | None,
+) -> BackgroundJob:
+    """
+    Atomically create ExternalOperation + BackgroundJob for TPA adjudication.
+    Called within an active transaction — caller must db.commit().
+    """
+    idempotency_key = f"tpa_adj_{txn.transaction_id}"
+
+    # Create ExternalOperation (C2 record) atomically
+    try:
+        with db.begin_nested():
+            op = ExternalOperation(
+                provider="TPA",
+                operation="ADJUDICATE",
+                idempotency_key=idempotency_key,
+                claim_id=claim_id,
+                transaction_id=txn.id,
+            )
+            db.add(op)
+            db.flush()
+    except IntegrityError:
+        # Already exists (idempotent — re-fetch)
+        from sqlalchemy import select
+        op = db.execute(
+            select(ExternalOperation).where(
+                ExternalOperation.provider == "TPA",
+                ExternalOperation.operation == "ADJUDICATE",
+                ExternalOperation.idempotency_key == idempotency_key,
+            )
+        ).scalar_one()
+
+    job = BackgroundJob(
+        job_type="TPA_ADJUDICATION",
+        status="PENDING",
+        payload={"idempotency_key": idempotency_key},
+        transaction_id=txn.id,
+        claim_id=claim_id,
+        external_operation_id=op.id,
+        max_attempts=5,
+        next_attempt_at=_utcnow(),
+    )
+    db.add(job)
+    db.flush()
+    return job
+
+
 async def process_transaction(
     payload: TransactionIn,
     db: Session,
 ) -> Transaction:
     """
-    Full claim processing pipeline. Returns the completed Transaction ORM object.
-    Raises ValueError for validation errors (unmapped codes, unknown hospital, etc.)
+    Synchronous claim intake pipeline. Returns the Transaction ORM object
+    with status PROCESSING (async worker will complete TPA + HIS).
+
+    Synchronous steps (in HTTP request path):
+      Receive → Validate → Normalize Codes → Benchmark → FWA
+      → Persist Transaction + Claim + ExternalOperation + BackgroundJob
+      → COMMIT → return
+
+    Asynchronous steps (delegated to C3 worker):
+      TPA adjudication → persist adjudication → HIS callback
+
+    Raises ValueError for validation errors (unmapped codes, unknown hospital).
     """
 
     # ── Step 1: Validate & identify hospital ──────────────────────────────────
@@ -71,17 +191,19 @@ async def process_transaction(
         raise ValueError(f"Unknown or inactive hospital: {payload.hospital_id}")
 
     # ── Step 2: Idempotency check ─────────────────────────────────────────────
-    # Pre-check: fast path before any writes
     existing = (
         db.query(Transaction)
         .filter(
             Transaction.transaction_id == payload.transaction_id,
-            Transaction.hospital_id == hospital.id
+            Transaction.hospital_id == hospital.id,
         )
         .first()
     )
     if existing is not None:
-        logger.info("Idempotency: returning existing txn %s for hospital %s", payload.transaction_id, hospital.hospital_code)
+        logger.info(
+            "Idempotency: returning existing txn %s for hospital %s",
+            payload.transaction_id, hospital.hospital_code,
+        )
         return existing
 
     # ── Step 3: Create transaction record ─────────────────────────────────────
@@ -98,24 +220,24 @@ async def process_transaction(
     )
     db.add(txn)
     try:
-        db.flush()  # Flush to detect unique constraint violation immediately
+        db.flush()
     except IntegrityError:
-        # Race condition: another concurrent request inserted first
         db.rollback()
         existing = (
             db.query(Transaction)
             .filter(
                 Transaction.transaction_id == payload.transaction_id,
-                Transaction.hospital_id == hospital.id
+                Transaction.hospital_id == hospital.id,
             )
             .first()
         )
         if existing is not None:
             logger.info(
-                "Idempotency (race): returning existing txn %s for hospital %s", payload.transaction_id, hospital.hospital_code
+                "Idempotency (race): returning existing txn %s for hospital %s",
+                payload.transaction_id, hospital.hospital_code,
             )
             return existing
-        raise  # Unexpected IntegrityError — re-raise
+        raise
 
     _log_event(db, txn, "TRANSACTION_RECEIVED", source="HIS", payload={
         "hospital": payload.hospital_id,
@@ -126,6 +248,30 @@ async def process_transaction(
     # ── Step 4: Validate & map codes ──────────────────────────────────────────
     mapping_svc = CodeMappingService(db)
     benchmark_svc = BenchmarkService(db)
+
+    from app.models import Patient, Member, Claim, ClaimItem
+    patient = db.query(Patient).filter(
+        Patient.patient_reference == payload.patient_reference
+    ).first()
+    member = (
+        db.query(Member).filter(Member.patient_id == patient.id).first()
+        if patient else None
+    )
+
+    claim_status = "RECEIVED" if member else "PENDING_ELIGIBILITY"
+    claim = Claim(
+        claim_number=f"CLM-{payload.transaction_id}",
+        hospital_id=hospital.id,
+        patient_id=patient.id if patient else None,
+        member_id=member.id if member else None,
+        policy_id=member.policy_id if member else None,
+        transaction_id=txn.id,
+        total_billed_amount=submitted_amount,
+        status=claim_status,
+        service_date=_utcnow(),
+    )
+    db.add(claim)
+    db.flush()
 
     txn_items: list[TransactionItem] = []
     fwa_item_inputs: list[dict] = []
@@ -138,7 +284,6 @@ async def process_transaction(
             unmapped_codes.append(item_in.hospital_code)
             continue
 
-        # Benchmark
         bench = benchmark_svc.evaluate(mapping.common_code, item_in.unit_price)
 
         txn_item = TransactionItem(
@@ -159,6 +304,19 @@ async def process_transaction(
         db.flush()
         txn_items.append(txn_item)
 
+        if claim:
+            claim_item = ClaimItem(
+                claim_id=claim.id,
+                hospital_code_id=None,
+                common_code_id=None,
+                description=item_in.description,
+                quantity=item_in.quantity,
+                billed_unit_price=item_in.unit_price,
+                billed_total=item_in.unit_price * item_in.quantity,
+                status="PENDING",
+            )
+            db.add(claim_item)
+
         fwa_item_inputs.append({
             "common_code": mapping.common_code,
             "submitted_price": item_in.unit_price,
@@ -166,28 +324,22 @@ async def process_transaction(
             "quantity": item_in.quantity,
         })
 
+    # ── Validation failure path ───────────────────────────────────────────────
     if unmapped_codes:
         txn.status = "VALIDATION_FAILED"
         _log_event(db, txn, "VALIDATION_FAILED", status="ERROR", payload={
             "unmapped_codes": unmapped_codes,
         })
-        db.commit()
+        db.flush()
 
-        # Send callback for validation failed
-        his_payload = HISCallbackIn(
-            transaction_id=payload.transaction_id,
-            facility_code=hospital.hospital_code,
-            status="VALIDATION_FAILED",
-            decision="REJECTED",
-            reason_code="VAL-001",
-            reason=f"Unmapped hospital codes: {unmapped_codes}",
-            approved_amount=0.0,
-            timestamp=datetime.now(timezone.utc),
+        # Enqueue HIS callback for validation failure (async — does not block 400 response)
+        _enqueue_his_callback_job(
+            db, txn,
+            claim_id=claim.id,
+            adj_status="VALIDATION_FAILED",
+            adj_amount=0.0,
+            adj_reason=f"Unmapped hospital codes: {unmapped_codes}",
         )
-        # Note: We await send_his_callback but we are in an async function so it's fine.
-        delivery_status = await send_his_callback(hospital.hospital_code, hospital.response_endpoint, his_payload)
-        _log_event(db, txn, "HIS_CALLBACK_DELIVERED" if delivery_status == "DELIVERED" else "HIS_CALLBACK_FAILED",
-                   source="HIS", status=delivery_status, payload={"delivery_status": delivery_status})
         db.commit()
 
         raise ValueError(
@@ -223,7 +375,7 @@ async def process_transaction(
         hospital_db_id=hospital.id,
         patient_reference=payload.patient_reference,
         items=fwa_item_inputs,
-        transaction_date=datetime.now(timezone.utc),
+        transaction_date=_utcnow(),
     )
     fwa_engine_result = fwa_engine.run(fwa_input)
 
@@ -243,101 +395,40 @@ async def process_transaction(
         "flags": fwa_engine_result.flags,
     })
 
-    # Normalized amount = sum of allowed_maximum (or unit_price if no benchmark)
     normalized_amount = sum(
         (i.allowed_maximum or i.unit_price) * i.quantity for i in txn_items
     )
     txn.normalized_amount = round(normalized_amount, 2)
 
-    # ── Step 6: Send to Mock TPA ──────────────────────────────────────────────
-    txn.status = "SENT_TO_TPA"
-    tpa_claim = TPAClaimIn(
-        transaction_id=payload.transaction_id,
-        member_id=payload.patient_reference,
-        items=[
-            TPAItemIn(
-                common_code=i.common_code,
-                description=i.description,
-                quantity=i.quantity,
-                submitted_amount=i.unit_price * i.quantity,
-                allowed_amount=(i.allowed_maximum or i.unit_price) * i.quantity,
-            )
-            for i in txn_items
-        ],
-        fwa_status=fwa_engine_result.overall_status,
-        fwa_flags=fwa_engine_result.flags,
-    )
+    # ── Step 6: Async boundary ────────────────────────────────────────────────
+    # External calls (TPA adjudication, HIS callback) are delegated to the
+    # C3 background worker. We only enqueue durable jobs here.
 
-    _log_event(db, txn, "TPA_SUBMITTED", source="CENTRAL_HUB", payload={
-        "tpa_endpoint": "/api/v1/tpa/adjudicate",
-        "fwa_status": fwa_engine_result.overall_status,
-    })
-    db.commit()  # Commit before async calls
+    if not member:
+        # No TPA adjudication possible — enqueue HIS callback for PENDING_ELIGIBILITY
+        txn.status = "PENDING_ELIGIBILITY"
+        _log_event(db, txn, "TPA_SKIPPED", source="CENTRAL_HUB", payload={
+            "reason": "Insurance context unresolved (Unknown Member)",
+            "fwa_status": fwa_engine_result.overall_status,
+        })
+        db.flush()
+        _enqueue_his_callback_job(
+            db, txn,
+            claim_id=claim.id,
+            adj_status="PENDING_ELIGIBILITY",
+            adj_amount=0.0,
+            adj_reason="Insurance context unresolved",
+        )
+    else:
+        # Enqueue TPA adjudication job — worker will handle TPA → HIS sequencing
+        txn.status = "PROCESSING"
+        db.flush()
+        _enqueue_tpa_adjudication_job(db, txn, claim_id=claim.id)
 
-    try:
-        tpa_response = await call_tpa(tpa_claim)
-    except Exception as exc:
-        logger.error("TPA call failed for %s: %s", payload.transaction_id, exc)
-        db.rollback()
-        # Re-fetch txn after rollback attempt
-        txn = db.query(Transaction).filter(
-            Transaction.transaction_id == payload.transaction_id
-        ).first()
-        txn.status = "TPA_ERROR"
-        _log_event(db, txn, "TPA_ERROR", status="ERROR", payload={"error": str(exc)})
-        db.commit()
-        raise
-
-    # ── Step 7: Store adjudication ────────────────────────────────────────────
-    _log_event(db, txn, "TPA_RESPONSE_RECEIVED", source="MOCK_TPA", payload={
-        "status": tpa_response.status,
-        "approved_amount": tpa_response.approved_amount,
-        "reason": tpa_response.reason,
-    })
-
-    adjudication = Adjudication(
-        transaction_id=txn.id,
-        status=tpa_response.status,
-        approved_amount=tpa_response.approved_amount,
-        reason=tpa_response.reason,
-        reference=tpa_response.reference,
-        his_delivery_status="PENDING",
-    )
-    db.add(adjudication)
-    txn.status = f"ADJUDICATED_{tpa_response.status}"
-    db.flush()
-
-    # ── Step 8: HIS Callback ──────────────────────────────────────────────────
-    his_payload = HISCallbackIn(
-        transaction_id=payload.transaction_id,
-        facility_code=hospital.hospital_code,
-        status=tpa_response.status,
-        decision=tpa_response.status,
-        reason_code=None,  # We can map this if needed
-        reason=tpa_response.reason,
-        approved_amount=tpa_response.approved_amount,
-        timestamp=datetime.now(timezone.utc),
-    )
-    _log_event(db, txn, "HIS_CALLBACK_SENT", source="CENTRAL_HUB", payload={
-        "hospital": payload.hospital_id,
-        "status": tpa_response.status,
-    })
-    db.commit()
-
-    delivery_status = await send_his_callback(hospital.hospital_code, hospital.response_endpoint, his_payload)
-
-    adjudication.his_delivery_status = delivery_status
-    _log_event(db, txn, "HIS_CALLBACK_DELIVERED" if delivery_status == "DELIVERED" else "HIS_CALLBACK_FAILED",
-               source="HIS", status=delivery_status, payload={
-                   "delivery_status": delivery_status,
-               })
     db.commit()
 
     logger.info(
-        "Transaction %s complete: status=%s approved=%.2f his=%s",
-        payload.transaction_id,
-        txn.status,
-        adjudication.approved_amount,
-        delivery_status,
+        "Transaction %s intake complete: status=%s (worker will complete TPA+HIS)",
+        payload.transaction_id, txn.status,
     )
     return txn

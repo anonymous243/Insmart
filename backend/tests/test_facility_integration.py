@@ -60,10 +60,11 @@ def test_integration_endpoint_valid_json(seeded_client):
         ]
     }
     response = client.post("/api/v1/integrations/rest/submit", json=payload, headers={"X-Facility-Api-Key": "TEST-API-KEY-A"})
-    assert response.status_code == 201, response.json()
+    # C3: ingest now returns 202 Accepted (async boundary)
+    assert response.status_code == 202, response.json()
     data = response.json()
     assert data["transaction_id"] == "INT-001"
-    assert data["status"] in ["APPROVED", "REVIEW", "REJECTED", "ADJUDICATED_APPROVED", "ADJUDICATED_REVIEW"]
+    assert data["status"] in ["PROCESSING", "PENDING_ELIGIBILITY", "VALIDATION_FAILED", "APPROVED", "REVIEW", "REJECTED"]
 
 def test_integration_endpoint_invalid_json(seeded_client):
     client, db, h_a, h_b, auth_a, auth_b = seeded_client
@@ -88,25 +89,15 @@ def test_integration_endpoint_idempotency(seeded_client):
     }
     # First submission
     resp1 = client.post("/api/v1/integrations/rest/submit", json=payload, headers={"X-Facility-Api-Key": "TEST-API-KEY-A"})
-    assert resp1.status_code == 201
+    assert resp1.status_code == 202
     # Second submission
     resp2 = client.post("/api/v1/integrations/rest/submit", json=payload, headers={"X-Facility-Api-Key": "TEST-API-KEY-A"})
-    assert resp2.status_code == 201
+    assert resp2.status_code == 202
     assert resp1.json()["transaction_id"] == resp2.json()["transaction_id"]
 
-from app.schemas import TPAResponse
-from unittest.mock import AsyncMock, patch
-
-@pytest.fixture(autouse=True)
-def mock_call_tpa():
-    with patch("app.services.transaction_orchestrator.call_tpa", new_callable=AsyncMock) as m:
-        m.return_value = TPAResponse(
-            transaction_id="DUMMY",
-            status="APPROVED",
-            approved_amount=100.0,
-            reference="TPA-REF-001"
-        )
-        yield m
+# C3 NOTE: The TPA call no longer happens in the HTTP request path.
+# The orchestrator enqueues a BackgroundJob; the C3 worker handles TPA asynchronously.
+# No mock_call_tpa fixture is needed for integration endpoint tests.
 
 def test_integration_api_key_auth(seeded_client):
     client, db, h_a, h_b, auth_a, auth_b = seeded_client

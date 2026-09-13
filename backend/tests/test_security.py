@@ -62,7 +62,8 @@ def test_authenticated_facility_can_access_own_history(client):
     )
     r = client.get("/api/v1/facility/history", headers=auth["headers"])
     assert r.status_code == 200
-    assert isinstance(r.json(), list)
+    assert "items" in r.json()
+    assert isinstance(r.json()["items"], list)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ def test_facility_a_cannot_see_facility_b_transaction(seeded_client):
         "patient_reference": "PAT-001",
         "items": [{"hospital_code": "CODE-A-001", "description": "Consult", "quantity": 1, "unit_price": 500}],
     }, headers=auth_a["headers"])
-    # Accept 201 (processed) or 400 (TPA mock not available in test) — just verify submission was received
+    # Accept 202 (processed) or 400 (TPA mock not available in test) — just verify submission was received
     assert r.status_code in (201, 400, 500)
 
     # Facility B attempts to read Facility A's transaction → must get 404
@@ -184,9 +185,9 @@ def test_duplicate_transaction_idempotency(seeded_client):
     r2 = client.post("/api/v1/transactions", json=payload, headers=auth_a["headers"])
 
     # Both should succeed (or both fail if the engine is not available in test env)
-    if r1.status_code == 201:
+    if r1.status_code in (201, 202):
         # Second should also be 201 (idempotent) and return same transaction
-        assert r2.status_code in (200, 201)
+        assert r2.status_code in (200, 201, 202)
         assert r1.json()["transaction_id"] == r2.json()["transaction_id"]
 
         # Only one Transaction row should exist in DB
@@ -211,8 +212,8 @@ def test_demo_submit_works_without_auth(seeded_client):
     })
     # Should not be 401 (no auth required for demo endpoint)
     assert r.status_code != 401, f"Demo endpoint must not require auth, got 401: {r.text}"
-    # May succeed (201) or fail on TPA/HIS call in test env, but auth must not block it
-    assert r.status_code in (200, 201, 400, 500)
+    # May succeed (202) or fail on TPA/HIS call in test env, but auth must not block it
+    assert r.status_code in (200, 201, 202, 400, 500)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -230,8 +231,8 @@ def test_demo_submit_duplicate_idempotency(seeded_client):
     r1 = client.post("/api/v1/demo/submit", json=payload)
     r2 = client.post("/api/v1/demo/submit", json=payload)
 
-    if r1.status_code == 201:
-        assert r2.status_code in (200, 201)
+    if r1.status_code in (201, 202):
+        assert r2.status_code in (200, 201, 202)
         # Both should refer to same transaction
         assert r1.json()["transaction_id"] == r2.json()["transaction_id"]
 
@@ -259,7 +260,9 @@ def test_facility_history_isolation(seeded_client):
     # Facility B should NOT see Facility A's transaction in its own history
     r_b = client.get("/api/v1/facility/history", headers=auth_b["headers"])
     assert r_b.status_code == 200
-    b_ids = [t["transaction_id"] for t in r_b.json()]
+    b_data = r_b.json()
+    assert "items" in b_data
+    b_ids = [t["transaction_id"] for t in b_data["items"]]
     assert "HIST-TEST-A-001" not in b_ids, (
         f"Facility B's history must not contain Facility A's transaction. Got: {b_ids}"
     )

@@ -1,0 +1,353 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/amar/Desktop/Vietnam/backend
+plugins: anyio-4.15.1
+collected 45 items
+
+tests/test_audit_fixes.py ...                                            [  6%]
+tests/test_facility_integration.py ....F.....                            [ 28%]
+tests/test_phase_b_insurance_context.py EEE                              [ 35%]
+tests/test_qa_e2e.py ..FF........                                        [ 62%]
+tests/test_security.py .................                                 [100%]
+
+==================================== ERRORS ====================================
+_______________ ERROR at setup of test_unknown_insurance_context _______________
+file /home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py, line 10
+  @pytest.mark.asyncio
+  async def test_unknown_insurance_context(db_session: Session, mock_hospital, mock_code_mapping, mock_benchmark):
+      # 1. Provide an unknown patient_reference
+      payload = TransactionIn(
+          transaction_id="TXN-UNKNOWN-1",
+          hospital_id=mock_hospital.hospital_code,
+          patient_reference="UNKNOWN-PATIENT-999",
+          items=[
+              TransactionItemIn(
+                  hospital_code="HOSP-001",
+                  description="Consultation",
+                  quantity=1,
+                  unit_price=150.0
+              )
+          ]
+      )
+
+      txn = await process_transaction(payload, db_session)
+
+      # Expected:
+      # Transaction: CREATED
+      assert txn.transaction_id == "TXN-UNKNOWN-1"
+
+      # Claim: CREATED, status: PENDING_ELIGIBILITY
+      claim = db_session.query(Claim).filter(Claim.transaction_id == txn.id).first()
+      assert claim is not None
+      assert claim.status == "PENDING_ELIGIBILITY"
+
+      # Member / CommercialPolicy: NOT CREATED
+      member = db_session.query(Member).filter(Member.id == claim.member_id).first()
+      assert member is None
+      policy = db_session.query(CommercialPolicy).filter(CommercialPolicy.id == claim.policy_id).first()
+      assert policy is None
+
+      # CHI adjudication: NOT PERFORMED (txn status PENDING_ELIGIBILITY)
+      assert txn.status == "PENDING_ELIGIBILITY"
+E       fixture 'db_session' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, client, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, seeded_client, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py:10
+___________ ERROR at setup of test_duplicate_transaction_idempotency ___________
+file /home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py, line 47
+  @pytest.mark.asyncio
+  async def test_duplicate_transaction_idempotency(db_session: Session, mock_hospital, mock_code_mapping, mock_benchmark, seed_patient_member):
+      payload = TransactionIn(
+          transaction_id="TXN-IDEM-1",
+          hospital_id=mock_hospital.hospital_code,
+          patient_reference=seed_patient_member.patient_reference,
+          items=[
+              TransactionItemIn(
+                  hospital_code="HOSP-001",
+                  description="Consultation",
+                  quantity=1,
+                  unit_price=100.0
+              )
+          ]
+      )
+
+      txn1 = await process_transaction(payload, db_session)
+      assert txn1 is not None
+
+      # Submit exactly same payload again
+      txn2 = await process_transaction(payload, db_session)
+
+      assert txn1.id == txn2.id
+
+      claims = db_session.query(Claim).filter(Claim.transaction_id == txn1.id).all()
+      assert len(claims) == 1
+E       fixture 'db_session' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, client, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, seeded_client, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py:47
+___________________ ERROR at setup of test_decimal_precision ___________________
+file /home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py, line 74
+  @pytest.mark.asyncio
+  async def test_decimal_precision(db_session: Session, mock_hospital, mock_code_mapping, mock_benchmark, seed_patient_member):
+      # Test that monetary values are correctly parsed/stored with 2 decimal places
+      payload = TransactionIn(
+          transaction_id="TXN-DECIMAL-1",
+          hospital_id=mock_hospital.hospital_code,
+          patient_reference=seed_patient_member.patient_reference,
+          items=[
+              TransactionItemIn(
+                  hospital_code="HOSP-001",
+                  description="Consultation",
+                  quantity=1,
+                  unit_price=100.55
+              )
+          ]
+      )
+
+      txn = await process_transaction(payload, db_session)
+      claim = db_session.query(Claim).filter(Claim.transaction_id == txn.id).first()
+
+      from decimal import Decimal
+      assert claim.total_billed_amount == Decimal("100.55")
+E       fixture 'db_session' not found
+>       available fixtures: anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, client, doctest_namespace, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, seeded_client, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py:74
+=================================== FAILURES ===================================
+_____________________ test_integration_endpoint_valid_json _____________________
+
+seeded_client = (<starlette.testclient.TestClient object at 0x717c99635eb0>, <sqlalchemy.orm.session.Session object at 0x717c997c1340>...bGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODk3MjAwNTEsInN1YiI6IjIifQ.r4QkAO7LNsKHrqX9HI477CauWNylH7T7hn0BJVQvtrc'}})
+
+    def test_integration_endpoint_valid_json(seeded_client):
+        client, db, h_a, h_b, auth_a, auth_b = seeded_client
+        h_a.api_key_hash = "TEST-API-KEY-A"
+        db.commit()
+        payload = {
+            "claim_reference": "INT-001",
+            "patient_ref": "PAT-INT-001",
+            "services": [
+                {
+                    "service_code": "TEST-CODE-A",
+                    "quantity": 1,
+                    "amount": 100.0,
+                    "description": "Test Service"
+                }
+            ]
+        }
+        response = client.post("/api/v1/integrations/rest/submit", json=payload, headers={"X-Facility-Api-Key": "TEST-API-KEY-A"})
+        assert response.status_code == 201, response.json()
+        data = response.json()
+        assert data["transaction_id"] == "INT-001"
+>       assert data["status"] in ["APPROVED", "REVIEW", "REJECTED", "ADJUDICATED_APPROVED", "ADJUDICATED_REVIEW"]
+E       AssertionError: assert 'PENDING_ELIGIBILITY' in ['APPROVED', 'REVIEW', 'REJECTED', 'ADJUDICATED_APPROVED', 'ADJUDICATED_REVIEW']
+
+tests/test_facility_integration.py:66: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-11 13:57:31,573 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-11 13:57:31,573 | INFO     | app.main | Database connection established.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:33 Database connection established.
+----------------------------- Captured stdout call -----------------------------
+2026-09-11 13:57:31,720 | INFO     | app.services.code_mapping_service | Code mapped: TEST-CODE-A → TEST-COMMON-A (confidence=1.00)
+2026-09-11 13:57:31,779 | INFO     | app.services.fwa_engine | FWA Engine complete: overall=PASS flags=[]
+2026-09-11 13:57:31,810 | INFO     | app.services.his_callback_service | Sending HIS callback for txn=INT-001 to http://localhost:8000/api/v1/hospitals/TEST-FAC-A/adjudication
+2026-09-11 13:57:31,949 | ERROR    | app.services.his_callback_service | HIS callback failed for txn=INT-001: All connection attempts failed
+2026-09-11 13:57:31,959 | INFO     | app.services.transaction_orchestrator | Transaction INT-001 complete: status=PENDING_ELIGIBILITY approved=0.00 his=FAILED
+2026-09-11 13:57:32,069 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/integrations/rest/submit "HTTP/1.1 201 Created"
+------------------------------ Captured log call -------------------------------
+INFO     app.services.code_mapping_service:code_mapping_service.py:83 Code mapped: TEST-CODE-A → TEST-COMMON-A (confidence=1.00)
+INFO     app.services.fwa_engine:fwa_engine.py:300 FWA Engine complete: overall=PASS flags=[]
+INFO     app.services.his_callback_service:his_callback_service.py:24 Sending HIS callback for txn=INT-001 to http://localhost:8000/api/v1/hospitals/TEST-FAC-A/adjudication
+ERROR    app.services.his_callback_service:his_callback_service.py:35 HIS callback failed for txn=INT-001: All connection attempts failed
+INFO     app.services.transaction_orchestrator:transaction_orchestrator.py:392 Transaction INT-001 complete: status=PENDING_ELIGIBILITY approved=0.00 his=FAILED
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/integrations/rest/submit "HTTP/1.1 201 Created"
+--------------------------- Captured stdout teardown ---------------------------
+2026-09-11 13:57:32,428 | INFO     | app.main | Shutting down.
+---------------------------- Captured log teardown -----------------------------
+INFO     app.main:main.py:35 Shutting down.
+_________________________ test_qa_c_normal_transaction _________________________
+
+qa_client = <starlette.testclient.TestClient object at 0x717c9833fe90>
+qa_db = <sqlalchemy.orm.session.Session object at 0x717c982c6c30>
+
+    def test_qa_c_normal_transaction(qa_client, qa_db):
+        # F033 token
+        r = qa_client.post("/api/v1/auth/login", json={"email": "apollo@demo.com", "password": "test"})
+        token = r.json()["access_token"]
+    
+        tx_id = f"QA-TXN-{uuid.uuid4().hex}"
+        payload = {
+            "transaction_id": tx_id,
+            "hospital_id": "F033",
+            "patient_reference": "PAT-123",
+            "items": [
+                {
+                    "hospital_code": "AP-LAB-010",
+                    "description": "CBC",
+                    "quantity": 1,
+                    "unit_price": 150 # Under benchmark
+                }
+            ]
+        }
+    
+        r = qa_client.post("/api/v1/transactions", headers={"Authorization": f"Bearer {token}"}, json=payload)
+        assert r.status_code == 201
+    
+        tx = qa_db.query(Transaction).filter(Transaction.transaction_id == tx_id).first()
+>       assert tx.status == "ADJUDICATED_APPROVED"
+E       AssertionError: assert 'PENDING_ELIGIBILITY' == 'ADJUDICATED_APPROVED'
+E         
+E         - ADJUDICATED_APPROVED
+E         + PENDING_ELIGIBILITY
+
+tests/test_qa_e2e.py:155: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-11 13:57:43,014 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-11 13:57:43,014 | INFO     | app.main | Database connection established.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:33 Database connection established.
+----------------------------- Captured stdout call -----------------------------
+2026-09-11 13:57:43,557 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+2026-09-11 13:57:43,611 | INFO     | app.services.code_mapping_service | Code mapped: AP-LAB-010 → LAB-CBC (confidence=1.00)
+2026-09-11 13:57:43,619 | INFO     | app.services.benchmark_service | Benchmark: LAB-CBC submitted=150.00 benchmark=150.00 max=180.00 variance=0.0% status=PASS
+2026-09-11 13:57:43,640 | INFO     | app.services.fwa_engine | FWA Engine complete: overall=PASS flags=[]
+2026-09-11 13:57:43,676 | INFO     | app.services.his_callback_service | Sending HIS callback for txn=QA-TXN-e2e50c9eab224f1c9e58402eaa7d83ae to http://localhost:8000/api/v1/hospitals/F033/adjudication
+2026-09-11 13:57:43,842 | ERROR    | app.services.his_callback_service | HIS callback failed for txn=QA-TXN-e2e50c9eab224f1c9e58402eaa7d83ae: All connection attempts failed
+2026-09-11 13:57:43,849 | INFO     | app.services.transaction_orchestrator | Transaction QA-TXN-e2e50c9eab224f1c9e58402eaa7d83ae complete: status=PENDING_ELIGIBILITY approved=0.00 his=FAILED
+2026-09-11 13:57:43,949 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/transactions "HTTP/1.1 201 Created"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+INFO     app.services.code_mapping_service:code_mapping_service.py:83 Code mapped: AP-LAB-010 → LAB-CBC (confidence=1.00)
+INFO     app.services.benchmark_service:benchmark_service.py:89 Benchmark: LAB-CBC submitted=150.00 benchmark=150.00 max=180.00 variance=0.0% status=PASS
+INFO     app.services.fwa_engine:fwa_engine.py:300 FWA Engine complete: overall=PASS flags=[]
+INFO     app.services.his_callback_service:his_callback_service.py:24 Sending HIS callback for txn=QA-TXN-e2e50c9eab224f1c9e58402eaa7d83ae to http://localhost:8000/api/v1/hospitals/F033/adjudication
+ERROR    app.services.his_callback_service:his_callback_service.py:35 HIS callback failed for txn=QA-TXN-e2e50c9eab224f1c9e58402eaa7d83ae: All connection attempts failed
+INFO     app.services.transaction_orchestrator:transaction_orchestrator.py:392 Transaction QA-TXN-e2e50c9eab224f1c9e58402eaa7d83ae complete: status=PENDING_ELIGIBILITY approved=0.00 his=FAILED
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/transactions "HTTP/1.1 201 Created"
+--------------------------- Captured stdout teardown ---------------------------
+2026-09-11 13:57:43,995 | INFO     | app.main | Shutting down.
+---------------------------- Captured log teardown -----------------------------
+INFO     app.main:main.py:35 Shutting down.
+___________________________ test_qa_d_price_anomaly ____________________________
+
+qa_client = <starlette.testclient.TestClient object at 0x717c982ed0a0>
+qa_db = <sqlalchemy.orm.session.Session object at 0x717c982aaab0>
+
+    def test_qa_d_price_anomaly(qa_client, qa_db):
+        r = qa_client.post("/api/v1/auth/login", json={"email": "apollo@demo.com", "password": "test"})
+        token = r.json()["access_token"]
+    
+        tx_id = f"QA-TXN-{uuid.uuid4().hex}"
+        payload = {
+            "transaction_id": tx_id,
+            "hospital_id": "F033",
+            "patient_reference": "PAT-123",
+            "items": [
+                {
+                    "hospital_code": "AP-CT-001",
+                    "description": "CT Scan",
+                    "quantity": 1,
+                    "unit_price": 50000000 # Massive price
+                }
+            ]
+        }
+    
+        r = qa_client.post("/api/v1/transactions", headers={"Authorization": f"Bearer {token}"}, json=payload)
+        assert r.status_code == 201
+    
+        tx = qa_db.query(Transaction).filter(Transaction.transaction_id == tx_id).first()
+>       assert tx.status == "ADJUDICATED_REVIEW"
+E       AssertionError: assert 'PENDING_ELIGIBILITY' == 'ADJUDICATED_REVIEW'
+E         
+E         - ADJUDICATED_REVIEW
+E         + PENDING_ELIGIBILITY
+
+tests/test_qa_e2e.py:183: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+2026-09-11 13:57:44,009 | INFO     | app.main | Starting Healthcare Claims Platform API...
+2026-09-11 13:57:44,009 | INFO     | app.main | Database connection established.
+------------------------------ Captured log setup ------------------------------
+INFO     app.main:main.py:32 Starting Healthcare Claims Platform API...
+INFO     app.main:main.py:33 Database connection established.
+----------------------------- Captured stdout call -----------------------------
+2026-09-11 13:57:44,490 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+2026-09-11 13:57:44,539 | INFO     | app.services.code_mapping_service | Code mapped: AP-CT-001 → CT-HEAD (confidence=1.00)
+2026-09-11 13:57:44,545 | INFO     | app.services.benchmark_service | Benchmark: CT-HEAD submitted=50000000.00 benchmark=2500.00 max=3000.00 variance=1999900.0% status=REVIEW
+2026-09-11 13:57:44,563 | WARNING  | app.services.fwa_engine | FWA-003 triggered: Submitted amount exceeds allowed benchmark variance. CT-HEAD: submitted=50000000.00 exceeds max=3000.00
+2026-09-11 13:57:44,564 | INFO     | app.services.fwa_engine | Rule FWA-003 triggered: PRICE_FLAG
+2026-09-11 13:57:44,564 | INFO     | app.services.fwa_engine | FWA Engine complete: overall=FLAG flags=['PRICE_FLAG']
+2026-09-11 13:57:44,583 | INFO     | app.services.his_callback_service | Sending HIS callback for txn=QA-TXN-671a9e2003054224a1f72586b04bc849 to http://localhost:8000/api/v1/hospitals/F033/adjudication
+2026-09-11 13:57:44,729 | ERROR    | app.services.his_callback_service | HIS callback failed for txn=QA-TXN-671a9e2003054224a1f72586b04bc849: All connection attempts failed
+2026-09-11 13:57:44,738 | INFO     | app.services.transaction_orchestrator | Transaction QA-TXN-671a9e2003054224a1f72586b04bc849 complete: status=PENDING_ELIGIBILITY approved=0.00 his=FAILED
+2026-09-11 13:57:44,764 | INFO     | httpx | HTTP Request: POST http://testserver/api/v1/transactions "HTTP/1.1 201 Created"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+INFO     app.services.code_mapping_service:code_mapping_service.py:83 Code mapped: AP-CT-001 → CT-HEAD (confidence=1.00)
+INFO     app.services.benchmark_service:benchmark_service.py:89 Benchmark: CT-HEAD submitted=50000000.00 benchmark=2500.00 max=3000.00 variance=1999900.0% status=REVIEW
+WARNING  app.services.fwa_engine:fwa_engine.py:181 FWA-003 triggered: Submitted amount exceeds allowed benchmark variance. CT-HEAD: submitted=50000000.00 exceeds max=3000.00
+INFO     app.services.fwa_engine:fwa_engine.py:291 Rule FWA-003 triggered: PRICE_FLAG
+INFO     app.services.fwa_engine:fwa_engine.py:300 FWA Engine complete: overall=FLAG flags=['PRICE_FLAG']
+INFO     app.services.his_callback_service:his_callback_service.py:24 Sending HIS callback for txn=QA-TXN-671a9e2003054224a1f72586b04bc849 to http://localhost:8000/api/v1/hospitals/F033/adjudication
+ERROR    app.services.his_callback_service:his_callback_service.py:35 HIS callback failed for txn=QA-TXN-671a9e2003054224a1f72586b04bc849: All connection attempts failed
+INFO     app.services.transaction_orchestrator:transaction_orchestrator.py:392 Transaction QA-TXN-671a9e2003054224a1f72586b04bc849 complete: status=PENDING_ELIGIBILITY approved=0.00 his=FAILED
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/transactions "HTTP/1.1 201 Created"
+--------------------------- Captured stdout teardown ---------------------------
+2026-09-11 13:57:44,810 | INFO     | app.main | Shutting down.
+---------------------------- Captured log teardown -----------------------------
+INFO     app.main:main.py:35 Shutting down.
+=============================== warnings summary ===============================
+venv/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+venv/lib/python3.12/site-packages/starlette/testclient.py:41
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/starlette/testclient.py:41: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    [], typing.ContextManager[anyio.abc.BlockingPortal]
+
+venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:284
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/test_phase_b_insurance_context.py:10
+  /home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py:10: PytestUnknownMarkWarning: Unknown pytest.mark.asyncio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.asyncio
+
+tests/test_phase_b_insurance_context.py:47
+  /home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.asyncio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.asyncio
+
+tests/test_phase_b_insurance_context.py:74
+  /home/amar/Desktop/Vietnam/backend/tests/test_phase_b_insurance_context.py:74: PytestUnknownMarkWarning: Unknown pytest.mark.asyncio - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.asyncio
+
+tests/test_audit_fixes.py: 1 warning
+tests/test_facility_integration.py: 10 warnings
+tests/test_qa_e2e.py: 7 warnings
+tests/test_security.py: 10 warnings
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+tests/test_facility_integration.py: 1 warning
+tests/test_qa_e2e.py: 7 warnings
+tests/test_security.py: 7 warnings
+  /home/amar/Desktop/Vietnam/backend/venv/lib/python3.12/site-packages/jwt/api_jwt.py:368: InsecureKeyLengthWarning: The HMAC key is 30 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    decoded = self.decode_complete(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_facility_integration.py::test_integration_endpoint_valid_json
+FAILED tests/test_qa_e2e.py::test_qa_c_normal_transaction - AssertionError: a...
+FAILED tests/test_qa_e2e.py::test_qa_d_price_anomaly - AssertionError: assert...
+ERROR tests/test_phase_b_insurance_context.py::test_unknown_insurance_context
+ERROR tests/test_phase_b_insurance_context.py::test_duplicate_transaction_idempotency
+ERROR tests/test_phase_b_insurance_context.py::test_decimal_precision
+============= 3 failed, 39 passed, 50 warnings, 3 errors in 28.60s =============

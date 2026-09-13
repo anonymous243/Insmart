@@ -3,9 +3,29 @@ import { fetchWithAuth } from '../../api/auth';
 
 export const History: React.FC = () => {
   const [history, setHistory] = useState<any[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const loadHistory = (cursor?: string) => {
+    setLoading(true);
+    const url = cursor ? `/facility/history?cursor=${cursor}` : '/facility/history';
+    fetchWithAuth(url)
+      .then(res => {
+        if (cursor) {
+          setHistory(prev => [...prev, ...res.items]);
+        } else {
+          setHistory(res.items);
+        }
+        setNextCursor(res.next_cursor);
+        setHasMore(res.has_more);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    fetchWithAuth('/facility/history').then(setHistory).catch(console.error);
+    loadHistory();
   }, []);
 
   return (
@@ -38,7 +58,7 @@ export const History: React.FC = () => {
                 <td style={{ textAlign: 'right' }} className="td-small">{new Date(t.created_at).toLocaleString()}</td>
               </tr>
             ))}
-            {history.length === 0 && (
+            {history.length === 0 && !loading && (
               <tr>
                 <td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>
                   No transactions found.
@@ -47,6 +67,18 @@ export const History: React.FC = () => {
             )}
           </tbody>
         </table>
+        
+        {hasMore && (
+          <div style={{ textAlign: 'center', padding: '16px 0', borderTop: '1px solid var(--border)' }}>
+            <button 
+              onClick={() => loadHistory(nextCursor!)} 
+              disabled={loading}
+              className="btn btn-secondary"
+            >
+              {loading ? 'Loading...' : 'Load More'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

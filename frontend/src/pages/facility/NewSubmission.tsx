@@ -5,7 +5,7 @@ import { FacilityCode } from '../../api/client';
 
 export const NewSubmission: React.FC = () => {
   const [patientRef, setPatientRef] = useState(`PAT-${Math.floor(Math.random() * 10000)}`);
-  const [amount, setAmount] = useState(500000);
+  const [amount, setAmount] = useState<number | ''>('');
   const [selectedCode, setSelectedCode] = useState<FacilityCode | null>(null);
   const [codes, setCodes] = useState<FacilityCode[]>([]);
   const [codesLoading, setCodesLoading] = useState(true);
@@ -41,6 +41,10 @@ export const NewSubmission: React.FC = () => {
       setSubmitError('Please select a service code.');
       return;
     }
+    if (amount === '' || Number(amount) <= 0) {
+      setSubmitError('Please enter a valid submitted amount.');
+      return;
+    }
     setSubmitError('');
     setSubmitting(true);
 
@@ -53,7 +57,7 @@ export const NewSubmission: React.FC = () => {
           hospital_code: selectedCode.local_code,
           description: selectedCode.description,
           quantity: 1,
-          unit_price: amount,
+          unit_price: Number(amount),
         },
       ],
     };
@@ -281,7 +285,7 @@ export const NewSubmission: React.FC = () => {
                 type="number"
                 value={amount}
                 min={1}
-                onChange={(e) => setAmount(Number(e.target.value))}
+                onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 required
                 style={{
                   width: '100%',

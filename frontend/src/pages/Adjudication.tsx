@@ -13,8 +13,8 @@ export const Adjudication: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getTransactions().then(t => {
-      setList(t.filter(tx => tx.status.startsWith('ADJUDICATED')));
+    api.getTransactions().then(res => {
+      setList(res.items.filter(tx => tx.status.startsWith('ADJUDICATED')));
     }).finally(() => setLoading(false));
   }, []);
 

@@ -119,14 +119,15 @@ def reset_demo(db: Session = Depends(get_db)):
 @router.post(
     "/submit",
     response_model=TransactionOut,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
     summary="[INTERNAL DEMO] Submit a transaction without authentication",
     description=(
         "Internal demo-only endpoint. Powers the admin HIS Simulation panel and "
         "the deterministic demo scenarios (Scenario 1, 2, 3). "
         "This endpoint does NOT require authentication. It is the explicit, named "
         "boundary for demo/internal traffic, keeping POST /transactions cleanly "
-        "authenticated. Must NOT be used by facility users in production."
+        "authenticated. Must NOT be used by facility users in production. "
+        "Returns 202 Accepted: FWA screening is synchronous; TPA and HIS are async."
     ),
     responses={
         400: {"model": ErrorDetail, "description": "Validation or mapping error"},

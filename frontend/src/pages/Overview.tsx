@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api, DashboardMetrics, TransactionListItem } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
 import { CURRENCY_SYMBOL, CURRENCY_LOCALE, IS_PROTOTYPE } from '../config';
+import { useAuth } from '../context/AuthContext';
 
 function fmt(n: number) {
   return new Intl.NumberFormat(CURRENCY_LOCALE, { minimumFractionDigits: 2 }).format(n);
@@ -13,14 +14,23 @@ export const Overview: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [txns, setTxns] = useState<TransactionListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { logout } = useAuth();
 
   useEffect(() => {
     Promise.all([api.getDashboardMetrics(), api.getTransactions()])
-      .then(([m, t]) => { setMetrics(m); setTxns(t.slice(0, 8)); })
+      .then(([m, t]) => { setMetrics(m); setTxns(t.items.slice(0, 8)); })
+      .catch((err: any) => {
+        setError(err.message || 'Failed to load dashboard data');
+        if (err.message && (err.message.toLowerCase().includes('unauthorized') || err.message.toLowerCase().includes('expired'))) {
+          logout();
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [logout]);
 
   if (loading) return <div className="loading"><div className="spinner" />Loading dashboard...</div>;
+  if (error) return <div className="alert alert-error" style={{ margin: 24 }}>{error}</div>;
 
   return (
     <>

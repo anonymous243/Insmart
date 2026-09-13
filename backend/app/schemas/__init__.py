@@ -1,7 +1,13 @@
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Generic, TypeVar, List
 from pydantic import BaseModel, Field
 
+T = TypeVar("T")
+
+class PaginationResponse(BaseModel, Generic[T]):
+    items: List[T]
+    next_cursor: Optional[str] = None
+    has_more: bool = False
 
 # ── Hospital ────────────────────────────────────────────────────────────────
 

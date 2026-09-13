@@ -13,7 +13,7 @@ export const FWABenchmark: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getTransactions().then(setList).finally(() => setLoading(false));
+    api.getTransactions().then(res => setList(res.items)).finally(() => setLoading(false));
   }, []);
 
   const open = (id: string) => {

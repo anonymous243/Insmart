@@ -21,9 +21,9 @@ os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-tests-only"
 # ── Patch engine BEFORE importing app ─────────────────────────────────────
 import app.db.session as db_session_module
 
+from sqlalchemy.pool import StaticPool
 def _make_sqlite_engine(name: str):
-    url = f"sqlite:///file:{name}?mode=memory&cache=shared&uri=true"
-    return create_engine(url, connect_args={"check_same_thread": False})
+    return create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
 
 
 # Module-level engine used by app (seeder etc.) before any test fixture
@@ -36,7 +36,7 @@ db_session_module.SessionLocal = sessionmaker(
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-
+import app.models as _app_models  # Ensure all models are registered on Base
 
 # ── Per-test fixtures ──────────────────────────────────────────────────────
 

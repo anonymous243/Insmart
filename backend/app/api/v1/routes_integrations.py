@@ -43,12 +43,12 @@ def authenticate_facility_api_key(
 @router.post(
     "/rest/submit",
     response_model=TransactionOut,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
     summary="Submit a transaction via REST integration",
     responses={
         400: {"model": ErrorDetail, "description": "Validation or mapping error"},
         401: {"model": ErrorDetail, "description": "Authentication required"},
-        409: {"model": TransactionOut, "description": "Duplicate transaction (idempotent return)"},
+        202: {"model": TransactionOut, "description": "Accepted — processing in progress or already complete"},
     },
 )
 async def submit_integration_transaction(

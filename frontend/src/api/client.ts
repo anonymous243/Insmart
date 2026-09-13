@@ -1,24 +1,19 @@
+import { fetchWithAuth } from './auth';
+
 // API client — proxied through Vite dev server to http://localhost:8000
 
 const BASE = '/api/v1';
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
-  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
-  return res.json();
+  // Use existing authenticated fetch mechanism
+  return fetchWithAuth(path);
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  return fetchWithAuth(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.detail?.message || `API error ${res.status}`);
-  }
-  return res.json();
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -154,6 +149,12 @@ export interface SubmitTransactionPayload {
   }>;
 }
 
+export interface PaginationResponse<T> {
+  items: T[];
+  next_cursor: string | null;
+  has_more: boolean;
+}
+
 // ── API Functions ──────────────────────────────────────────────────────────
 
 export const api = {
@@ -161,12 +162,16 @@ export const api = {
   getHospitals: () => get<Hospital[]>('/hospitals'),
   getCodeMappings: () => get<CodeMappingRow[]>('/codes/mappings'),
   getBenchmarks: () => get<BenchmarkRow[]>('/benchmarks'),
-  getTransactions: () => get<TransactionListItem[]>('/transactions'),
+  getTransactions: (cursor?: string) => get<PaginationResponse<TransactionListItem>>(`/transactions${cursor ? `?cursor=${cursor}` : ''}`),
+  // Facility-scoped (tenant isolation — only own transactions)
   getTransaction: (id: string) => get<Transaction>(`/transactions/${id}`),
+  // Admin-scoped (no tenant isolation — all transactions)
+  getTransactionAdmin: (id: string) => get<Transaction>(`/transactions/admin/${id}`),
   submitTransaction: (payload: SubmitTransactionPayload) =>
     // Routes through /demo/submit — the explicit internal path for admin demo/HIS tester.
     // Authenticated facility submissions use POST /transactions via fetchWithAuth.
     post<Transaction>('/demo/submit', payload),
   resetDemo: () => post<{ status: string; message: string }>('/demo/reset', {}),
   getAuditLogs: () => get<IntegrationEvent[]>('/audit/logs'),
+
 };

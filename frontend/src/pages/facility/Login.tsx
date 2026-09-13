@@ -20,7 +20,11 @@ export const Login: React.FC = () => {
         body: JSON.stringify({ email, password }),
       });
       login(data.access_token, data.user);
-      navigate('/facility');
+      if (data.user.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/facility');
+      }
     } catch (err: any) {
       setError(err.message);
     }
@@ -30,7 +34,7 @@ export const Login: React.FC = () => {
     <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
       <div style={{ background: 'white', padding: 40, borderRadius: 8, width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
         <h2 style={{ textAlign: 'center', marginBottom: 8, color: 'var(--accent)' }}>{PLATFORM_NAME}</h2>
-        <p style={{ textAlign: 'center', marginBottom: 24, color: 'var(--text-secondary)' }}>Facility Login</p>
+        <p style={{ textAlign: 'center', marginBottom: 24, color: 'var(--text-secondary)' }}>Portal Login</p>
         
         {error && <div style={{ color: 'red', marginBottom: 16, fontSize: 14 }}>{error}</div>}
         
@@ -49,9 +53,6 @@ export const Login: React.FC = () => {
         </form>
         <div style={{ marginTop: 16, textAlign: 'center', fontSize: 14 }}>
           Don't have an account? <Link to="/signup" style={{ color: 'var(--accent)' }}>Sign up</Link>
-        </div>
-        <div style={{ marginTop: 16, textAlign: 'center', fontSize: 14 }}>
-          Or visit <Link to="/admin" style={{ color: 'var(--accent)' }}>Central Admin</Link>
         </div>
       </div>
     </div>

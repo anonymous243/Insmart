@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.models import (
     Hospital, HospitalCode, CommonCode, CodeMapping,
     PriceBenchmark, FWARule, Patient, TerminologySystem,
-    Transaction, TransactionItem
+    Transaction, TransactionItem, CommercialPolicy, Member
 )
 
 logger = logging.getLogger(__name__)
@@ -41,11 +41,21 @@ async def run_seed(db: Session) -> None:
             ))
     db.flush()
 
-    # 2. Patients
+    # 2. Patients & Members
+    default_policy = CommercialPolicy(
+        policy_number="DEMO-POL-001",
+        insurer_name="Demo Insurance Co.",
+        policy_type="CORPORATE",
+        effective_from=datetime.now(timezone.utc) - timedelta(days=365),
+        effective_to=datetime.now(timezone.utc) + timedelta(days=365)
+    )
+    db.add(default_policy)
+    db.flush()
+
     with open(os.path.join(DATA_DIR, "patients.csv"), "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            db.add(Patient(
+            p = Patient(
                 patient_reference=row["patient_reference"],
                 age=int(row["age"]),
                 sex=row["sex"],
@@ -53,7 +63,19 @@ async def run_seed(db: Session) -> None:
                 province=row["province"],
                 insurance_reference=row["insurance_reference"],
                 synthetic_demo=row["synthetic_demo"].lower() == "true"
-            ))
+            )
+            db.add(p)
+            db.flush()
+            
+            # Create a Member record for this patient under the default policy
+            m = Member(
+                member_number=f"MEM-{p.patient_reference}",
+                policy_id=default_policy.id,
+                patient_id=p.id,
+                relationship_to_principal="SELF",
+                status="ACTIVE"
+            )
+            db.add(m)
     db.flush()
 
     # 3. Hospitals

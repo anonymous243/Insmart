@@ -31,18 +31,20 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 @router.post(
     "",
     response_model=TransactionOut,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
     summary="Submit a transaction (authenticated facility users only)",
     description=(
         "Authenticated facility endpoint. The facility identity is derived entirely from "
         "the Bearer token — any client-supplied hospital_id field is IGNORED and overridden "
         "server-side. Unauthenticated callers receive 401. "
-        "For the admin HIS Simulation / demo scenarios, use POST /api/v1/demo/submit."
+        "For the admin HIS Simulation / demo scenarios, use POST /api/v1/demo/submit. "
+        "Returns 202 Accepted: synchronous FWA screening is complete; TPA adjudication "
+        "and HIS callback proceed asynchronously via the C3 durable job worker."
     ),
     responses={
         400: {"model": ErrorDetail, "description": "Validation or mapping error"},
         401: {"description": "Authentication required"},
-        409: {"model": TransactionOut, "description": "Duplicate transaction (idempotent return)"},
+        202: {"model": TransactionOut, "description": "Accepted — processing in progress or already complete"},
     },
 )
 async def submit_transaction(
@@ -100,23 +102,52 @@ async def submit_transaction(
     return _load_full(db, txn.transaction_id)
 
 
+from typing import Optional
+from fastapi import Query
+from sqlalchemy import or_, and_
+from app.utils.pagination import decode_cursor, encode_cursor
+from app.schemas import PaginationResponse
+
 @router.get(
     "",
-    response_model=list[dict],
+    response_model=PaginationResponse[dict],
     summary="List all transactions (Central Operations — read-only admin view)",
 )
 def list_transactions(
+    cursor: Optional[str] = None,
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
     admin_user=Depends(get_current_admin_user)
 ):
+    query = db.query(Transaction).options(joinedload(Transaction.hospital))
+
+    if cursor:
+        try:
+            cursor_created_at, cursor_id = decode_cursor(cursor)
+            query = query.filter(
+                or_(
+                    Transaction.created_at < cursor_created_at,
+                    and_(
+                        Transaction.created_at == cursor_created_at,
+                        Transaction.id < cursor_id
+                    )
+                )
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid cursor")
+
     txns = (
-        db.query(Transaction)
-        .options(joinedload(Transaction.hospital))
-        .order_by(Transaction.created_at.desc())
-        .limit(200)
+        query
+        .order_by(Transaction.created_at.desc(), Transaction.id.desc())
+        .limit(limit + 1)
         .all()
     )
-    return [
+
+    has_more = len(txns) > limit
+    if has_more:
+        txns = txns[:limit]
+
+    items = [
         {
             "id": t.id,
             "transaction_id": t.transaction_id,
@@ -129,6 +160,17 @@ def list_transactions(
         }
         for t in txns
     ]
+    
+    next_cursor = None
+    if has_more and txns:
+        last_item = txns[-1]
+        next_cursor = encode_cursor(last_item.created_at, last_item.id)
+
+    return {
+        "items": items,
+        "next_cursor": next_cursor,
+        "has_more": has_more
+    }
 
 
 @router.get(
@@ -183,3 +225,23 @@ def _load_full(db: Session, transaction_id: str):
         .filter(Transaction.transaction_id == transaction_id)
         .first()
     )
+
+
+@router.get(
+    "/admin/{transaction_id}",
+    response_model=TransactionOut,
+    summary="Get transaction detail (admin — no tenant isolation)",
+)
+def get_transaction_admin(
+    transaction_id: str,
+    db: Session = Depends(get_db),
+    admin_user=Depends(get_current_admin_user),
+):
+    txn = _load_full(db, transaction_id)
+    if txn is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "NOT_FOUND", "message": f"Transaction {transaction_id} not found"},
+        )
+    return txn
+

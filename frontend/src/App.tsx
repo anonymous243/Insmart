@@ -19,9 +19,21 @@ import { History } from './pages/facility/History';
 import { Account } from './pages/facility/Account';
 
 const ProtectedFacilityRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return null;
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, loading, user } = useAuth();
+  if (loading) return null;
+  if (!isAuthenticated || user?.role !== 'ADMIN') {
+    // If they are logged in but not an admin, redirect them to facility. 
+    // Otherwise redirect to login.
+    return <Navigate to={isAuthenticated ? "/facility" : "/login"} replace />;
   }
   return <>{children}</>;
 };
@@ -48,7 +60,11 @@ function AppRoutes() {
       </Route>
 
       {/* Central Admin Application */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route path="/admin" element={
+        <ProtectedAdminRoute>
+          <AdminLayout />
+        </ProtectedAdminRoute>
+      }>
         <Route index element={<Overview />} />
         <Route path="codes" element={<CodeMaster />} />
         <Route path="transactions" element={<Transactions />} />

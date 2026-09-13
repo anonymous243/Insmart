@@ -89,4 +89,15 @@ def list_hospitals(
     db: Session = Depends(get_db),
     admin_user=Depends(get_current_admin_user)
 ):
-    return db.query(Hospital).filter(Hospital.status == "ACTIVE").all()
+    hospitals = db.query(Hospital).filter(Hospital.status == "ACTIVE").all()
+    return [
+        {
+            "id": h.id,
+            "hospital_code": h.hospital_code,
+            "hospital_name": h.hospital_name,
+            "integration_type": h.integration_type,
+            "status": h.status,
+            "created_at": h.created_at.isoformat() if h.created_at else None,
+        }
+        for h in hospitals
+    ]
